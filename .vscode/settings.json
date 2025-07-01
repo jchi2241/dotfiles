@@ -48,7 +48,7 @@
     "javascript.updateImportsOnFileMove.enabled": "prompt",
     "javascript.preferences.importModuleSpecifier": "non-relative",
     "typescript.preferences.importModuleSpecifier": "non-relative",
-    "typescript.tsdk": "node_modules/.pnpm/typescript@4.7.4/node_modules/typescript/lib",
+    "typescript.tsdk": "node_modules/.pnpm/typescript@5.4.2/node_modules/typescript/lib",
     "editor.stickyScroll.enabled": true,
     "editor.insertSpaces": true,
     "editor.tabSize": 4,
@@ -100,7 +100,7 @@
     "editor.cursorSurroundingLines": 5,
     "editor.fontFamily": "Iosevka, Fira Code, Hack, 'Droid Sans Mono', 'monospace', monospace, 'Droid Sans Fallback'",
     "editor.fontWeight": "500",
-    "editor.fontSize": 19,
+    "editor.fontSize": 16,
     "editor.fontLigatures": true,
     "eslint.workingDirectories": ["frontend"],
     "vim.easymotion": false,
@@ -200,18 +200,15 @@
     "gitlens.plusFeatures.enabled": false,
     "gitlens.statusBar.enabled": true,
     "gitlens.statusBar.command": "gitlens.showQuickCommitDetails",
-    "workbench.colorTheme": "Soft Colors",
     "python.formatting.provider": "black",
     "security.workspace.trust.untrustedFiles": "open",
     "git.ignoreLegacyWarning": true,
-    "files.insertFinalNewline": true,
     "vscode-neovim.neovimExecutablePaths.linux": "/usr/local/bin/nvim",
     "extensions.experimental.affinity": {
         "asvetliakov.vscode-neovim": 1
     },
     "editor.minimap.enabled": false,
     "workbench.editor.empty.hint": "hidden",
-    "gitlab.aiAssistedCodeSuggestions.enabled": false,
     "gitlab.duoChat.enabled": false,
     "gitlens.showWelcomeOnInstall": false,
     "gitlens.currentLine.enabled": false,
@@ -224,7 +221,71 @@
     "github.copilot.advanced": {},
     "github.copilot.editor.enableAutoCompletions": true,
     "scm.workingSets.enabled": true,
-    "github.copilot.editor.enableCodeActions": false
+    "github.copilot.editor.enableCodeActions": false,
+    "gitlab.duoCodeSuggestions.enabled": false,
+    "workbench.colorTheme": "Soft Colors",
     // "vscode-neovim.useCtrlKeysForNormalMode": false,
     // "vscode-neovim.useCtrlKeysForInsertMode": false
+
+    "better-comments.tags": [
+        {
+            "tag": "!",
+            "color": "#FF2D00",
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": false,
+            "italic": false
+        },
+        {
+            "tag": "?",
+            "color": "#3498DB",
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": false,
+            "italic": false
+        },
+        {
+            "tag": "//",
+            "color": "#474747",
+            "strikethrough": true,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": false,
+            "italic": false
+        },
+        {
+            "tag": "todo",
+            "color": "#FF8C00",
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": true,
+            "italic": false
+        },
+        {
+            "tag": "*",
+            "color": "#98C379",
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": false,
+            "italic": false
+        },
+        {
+            "tag": "done",
+            "color": "#98C379",
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": false,
+            "italic": false
+        }
+    ],
+    "terminal.integrated.fontSize": 15,
+    "terminal.integrated.fontWeight": "600",
+    "github.copilot.nextEditSuggestions.fixes": true,
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "terminal.integrated.defaultProfile.linux": "zsh"
 }

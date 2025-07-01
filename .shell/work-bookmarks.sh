@@ -17,11 +17,56 @@ alias sbf="bf && make server"
 # Helios commands
 alias lhel="kcadm-login && kcadm update realms/memsql -s verifyEmail=false"
 alias rkct="./deploy/kube/util/reload-keycloak-img.sh && ./deploy/kube/util/reset-postgres.sh"
-alias nukehelios="hel && dsp && dip && rm -rf singlestore.com/helios/bin && make kube-init"
+alias nukehelios="hel && make docker-nuke && rm -rf singlestore.com/helios/bin && cd singlestore.com/helios && goclean && hel && make kube-init"
 alias login-ecr="cd ~/projects/aws-ci-runners && make login-registry && cd -"
-alias testbackendmonitoring="PACKAGE=singlestore.com/helios/graph/cluster_tests/s2monitoring GO_TEST_VERBOSE='-run TestEndToEnd' make backend-cluster-test"
-alias testmonitoringalerts="BACKEND_TEST=monitoringalerts make backend-integration-test"
-alias testprivate="BACKEND_TEST=graph/server/private make backend-integration-test"
+alias nukedocker='
+  [ "$(docker ps -q)" ] && docker stop $(docker ps -q);
+  [ "$(docker ps -aq)" ] && docker rm $(docker ps -aq);
+  [ "$(docker volume ls -q)" ] && docker volume rm $(docker volume ls -q)
+'
+# Test example commands
+# Reminders
+# - Run a single test, add env GO_TEST_VERBOSE='-v -run <TestName>'
+# - Run a single package, add env BACKEND_TEST=<package>'.
+#   Package is full path if cluster-test, else, it's the path after singlestore.com/helios
+#   Target nested files with `...` syntax. e.g., "pulsestoreservice/..."
+alias testcluster="BACKEND_TEST=singlestore.com/helios/graph/cluster_tests/s2monitoring GO_TEST_VERBOSE='-v -run TestEndToEnd' make backend-cluster-test"
+alias testintegration="BACKEND_TEST=monitoringalerts make backend-integration-test"
+alias testdb="make postgres-test-reset && BACKEND_TEST=data/pulsedata make backend-db-test"
+alias testpulse="BACKEND_TEST=pulsestoreservice make backend-integration-test"
+
+# Setup helios env to run notebooks locally
+setup-notebooks() {
+  set -e
+
+  log() { echo "[$1] $2"; }
+
+  log "info" "Starting notebook setup process..."
+
+  log "info" "Running FISSION=1 make kube-init..."
+  FISSION=1 make kube-init
+
+  log "info" "Running make nova-setup-gateway..."
+  make nova-setup-gateway
+
+  log "info" "Enabling JupyterNotebooks and NotebookCodeService feature flags..."
+
+  source helios/get_private_auth_header.sh
+  auth_header_jwt=$(get_private_auth_header)
+
+  org_id="d7d4c050-3ced-49e1-8cff-a7e8eb95e691"
+
+  log "info" "Using organization ID: $org_id"
+
+  log "info" "Enabling JupyterNotebooks feature flag..."
+  gql "mutation { featureFlagEnable(organizationID: \"$org_id\", flag: JupyterNotebooks) }" || return 1
+
+  log "info" "Enabling NotebookCodeService feature flag..."
+  gql "mutation { featureFlagEnable(organizationID: \"$org_id\", flag: NotebookCodeService) }" || return 1
+
+  log "info" "Running make frontend-notebooks-start..."
+  make frontend-notebooks-start
+}
 
 # Prep projects for a diff
 alias pbf="bf && make lint-fix && make lint && make test"
@@ -29,7 +74,7 @@ alias lintfe="hel && make frontend-prettier-full-check && make frontend-lint-fix
 alias pstudio="studio && cd frontend && npm run prettier && npm run lint && npm run tsc && npm run test"
 
 # Other
-alias bastion="ssh bastion-1b"
+alias bast="ssh bastion-1b"
 alias p2="pyenv global 2.7.17"
 alias p3="pyenv global 3.6.3"
 alias fl="flameshot gui"
@@ -65,3 +110,8 @@ alias ciab="docker rm -f singlestore-ciab || true && \
     singlestore/cluster-in-a-box && \
     docker start singlestore-ciab"
 
+alias vpn-on="sudo tailscale up \
+    --login-server https://headscale.internal.memcompute.com \
+    --accept-routes \
+    --operator=$USER"
+alias vpn-off="tailscale down"

@@ -58,8 +58,26 @@ alias drm='docker rm -f $(docker container ls -aq)'
 alias dip='docker image prune -a --force'
 alias dsp='docker system prune --force --volumes -a'
 
+# Ring
+alias loudbell='for i in {1..4}; do paplay /usr/share/sounds/freedesktop/stereo/complete.oga; sleep 0.001; done'
+
 # Clear go cache and builds
 alias goclean='go clean -cache -modcache -i -r'
+
+# Kubectl helpers
+klog() {
+  if [ -z "$1" ]; then
+    echo "Usage: klog <deployment-name>"
+    return 1
+  fi
+  pod=$(kubectl get pods --no-headers -o custom-columns=":metadata.name" | grep "^$1-" | head -n1)
+  if [ -z "$pod" ]; then
+    echo "No pod found for deployment: $1"
+    return 1
+  fi
+  kubectl logs "$pod"
+}
+alias klog='klog'
 
 # Learnings
 export LEARNS_PATH="~/Documents/learnings"
@@ -80,5 +98,6 @@ alias jss="code ~/Documents/sandbox.js"
 alias pys="code ~/Documents/sandbox.py"
 alias mds="code ~/Documents/sandbox.md"
 
-alias upgradevscode="sudo apt install code --only-upgrade"
+alias ucode="sudo apt install code --only-upgrade"
+alias uchrome="sudo apt install google-chrome-stable --only-upgrade"
 
