@@ -24,6 +24,10 @@ fi
 
 # gvm
 [[ -s "/home/jchi/.gvm/scripts/gvm" ]] && source "/home/jchi/.gvm/scripts/gvm"
+# Load GVM helper functions (fixes "command not found" errors)
+[[ -s "$GVM_ROOT/scripts/functions" ]] && source "$GVM_ROOT/scripts/functions"
+[[ -s "$GVM_ROOT/scripts/function/_bash_pseudo_hash" ]] && source "$GVM_ROOT/scripts/function/_bash_pseudo_hash"
+[[ -s "$GVM_ROOT/scripts/function/_shell_compat" ]] && source "$GVM_ROOT/scripts/function/_shell_compat"
 
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
@@ -59,4 +63,5 @@ export PATH="/home/jchi/.local/bin:$PATH"
 # sudo sysctl -w fs.inotify.max_user_watches=2099999999
 # sudo sysctl -w fs.inotify.max_user_instances=2099999999
 # sudo sysctl -w fs.inotify.max_queued_events=2099999999
-# source ~/monagent-env
+# source ~/monagent-en
+

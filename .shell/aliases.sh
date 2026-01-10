@@ -30,6 +30,7 @@ alias gid='git diff -C --date=local'
 alias giw='git show -C --date=local --decorate'
 alias gic='git checkout'
 alias gib='git branch'
+alias gibs='(echo " |BRANCH|MESSAGE|UPDATED"; git for-each-ref --sort=committerdate refs/heads/ --format="%(if)%(HEAD)%(then)*%(else) %(end)|%(refname:short)|%(subject)|%(committerdate:relative)") | column -t -s"|" | awk "BEGIN{GRN=sprintf(\"%c[1;32m\",27);RST=sprintf(\"%c[0m\",27)} NR==1{print;next} \$1==\"*\"{print GRN \$0 RST; next} {print}"'
 alias gicm='git commit -m'
 alias gicc='git commit -am "CHECKPOINT"'
 
@@ -46,6 +47,7 @@ alias copy="xclip -selection c"
 alias killchrome="killall chrome"
 alias killcontainers='docker rm -f $(docker container ls -aq)'
 alias killslack="kill -9 $(pidof slack)"
+alias cc="claude"
 
 # Managing dotfiles
 alias vimrc="vim ~/.dotfiles/vimrc"
@@ -66,18 +68,49 @@ alias goclean='go clean -cache -modcache -i -r'
 
 # Kubectl helpers
 klog() {
-  if [ -z "$1" ]; then
-    echo "Usage: klog <deployment-name>"
+  if [ $# -lt 1 ]; then
+    echo "Usage: klog <deployment-name> [-f] [kubectl logs args...]"
     return 1
   fi
-  pod=$(kubectl get pods --no-headers -o custom-columns=":metadata.name" | grep "^$1-" | head -n1)
-  if [ -z "$pod" ]; then
-    echo "No pod found for deployment: $1"
-    return 1
+
+  local dep="$1"
+  shift
+  local mode="tail"
+  local passthrough=()
+
+  # Detect -f in args
+  for arg in "$@"; do
+    if [ "$arg" = "-f" ]; then
+      mode="follow"
+    else
+      passthrough+=("$arg")
+    fi
+  done
+
+  if kubectl get pods -l app.kubernetes.io/component="$dep" "${passthrough[@]}" 2>/dev/null | grep -q .; then
+    if [ "$mode" = "follow" ]; then
+      kubectl logs -l app.kubernetes.io/component="$dep" --all-containers=true -f "${passthrough[@]}"
+    else
+      kubectl logs -l app.kubernetes.io/component="$dep" --all-containers=true --tail=-1 "${passthrough[@]}"
+    fi
+    return $?
   fi
-  kubectl logs "$pod"
+
+  if kubectl get pods -l run="$dep" "${passthrough[@]}" 2>/dev/null | grep -q .; then
+    if [ "$mode" = "follow" ]; then
+      kubectl logs -l run="$dep" --all-containers=true -f "${passthrough[@]}"
+    else
+      kubectl logs -l run="$dep" --all-containers=true --tail=-1 "${passthrough[@]}"
+    fi
+    return $?
+  fi
+
+  echo "No pods found with label app.kubernetes.io/component=$dep or run=$dep"
+  return 1
 }
-alias klog='klog'
+
+# Toggle res
+alias toggleres="~/.local/bin/toggle-res.sh"
 
 # Learnings
 export LEARNS_PATH="~/Documents/learnings"

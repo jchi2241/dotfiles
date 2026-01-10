@@ -13,7 +13,8 @@
         "**/dist-staging": true,
         "**/dist-test": true,
         "**/vendor/": true,
-        "**/github.com/": true
+        "**/github.com/": true,
+        "**/.config": true
     },
     "files.watcherExclude": {
         ".DS_Store": true,
@@ -53,7 +54,7 @@
     "editor.insertSpaces": true,
     "editor.tabSize": 4,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "[javascript]": {
         "editor.formatOnSave": true
     },
@@ -67,6 +68,9 @@
         "editor.formatOnSave": false
     },
     "[yaml]": {
+        "editor.formatOnSave": false
+    },
+    "[yml]": {
         "editor.formatOnSave": false
     },
     "[python]": {
@@ -94,7 +98,6 @@
 
     "editor.renderWhitespace": "boundary",
     "editor.codeActionsOnSave": {
-        "source.fixAll": "explicit",
         "source.addMissingImports": "never"
     },
     "editor.cursorSurroundingLines": 5,
@@ -102,7 +105,6 @@
     "editor.fontWeight": "500",
     "editor.fontSize": 16,
     "editor.fontLigatures": true,
-    "eslint.workingDirectories": ["frontend"],
     "vim.easymotion": false,
     "vim.leader": "<space>",
     "vim.highlightedyank": {
@@ -212,20 +214,8 @@
     "gitlab.duoChat.enabled": false,
     "gitlens.showWelcomeOnInstall": false,
     "gitlens.currentLine.enabled": false,
-    "github.copilot.enable": {
-        "*": false,
-        "plaintext": false,
-        "markdown": false,
-        "scminput": false
-    },
-    "github.copilot.advanced": {},
-    "github.copilot.editor.enableAutoCompletions": true,
     "scm.workingSets.enabled": true,
-    "github.copilot.editor.enableCodeActions": false,
-    "gitlab.duoCodeSuggestions.enabled": false,
     "workbench.colorTheme": "Soft Colors",
-    // "vscode-neovim.useCtrlKeysForNormalMode": false,
-    // "vscode-neovim.useCtrlKeysForInsertMode": false
 
     "better-comments.tags": [
         {
@@ -285,7 +275,213 @@
     ],
     "terminal.integrated.fontSize": 15,
     "terminal.integrated.fontWeight": "600",
+    "terminal.integrated.defaultProfile.linux": "zsh",
+
+    // https://austen.info/blog/github-copilot-agent-mcp
     "github.copilot.nextEditSuggestions.fixes": true,
-    "github.copilot.nextEditSuggestions.enabled": true,
-    "terminal.integrated.defaultProfile.linux": "zsh"
+    "github.copilot.nextEditSuggestions.enabled": false,
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    },
+    "github.copilot.renameSuggestions.triggerAutomatically": true,
+    "github.copilot.editor.enableCodeActions": true,
+    "github.copilot.chat.startDebugging.enabled": true,
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "text": "Keep the commit message short and concise. Use imperative mood and avoid unnecessary details. Present tense"
+        }
+    ],
+    "github.copilot.chat.reviewSelection.enabled": true,
+    "github.copilot.chat.setupTests.enabled": true,
+    "github.copilot.chat.useProjectTemplates": true,
+    "github.copilot.chat.generateTests.codeLens": true,
+    "github.copilot.chat.edits.temporalContext.enabled": true,
+    "github.copilot.chat.languageContext.typescript.enabled": true,
+    "github.copilot.chat.completionContext.typescript.mode": "sidecar",
+    "github.copilot.chat.editor.temporalContext.enabled": true,
+    "github.copilot.chat.codesearch.enabled": true,
+    "github.copilot.chat.newWorkspaceCreation.enabled": true,
+    "github.copilot.chat.agent.thinkingTool": true,
+    "github.copilot.chat.languageContext.fix.typescript.enabled": true,
+    "github.copilot.chat.languageContext.inline.typescript.enabled": true,
+    "github.copilot.chat.notebook.followCellExecution.enabled": true,
+    // "chat.editing.autoAcceptDelay": 5, // Delay in seconds before automatically accepting edits
+    "chat.tools.autoApprove": true, // Automatically approve run commands and tool requests
+    "chat.agent.maxRequests": 100, // Maximum iterations before asking to continue
+    "chat.renderRelatedFiles": true,
+    "chat.setup.continueLaterIndicator": true,
+    "inlineChat.enableV2": true,
+    "inlineChat.hideOnRequest": true,
+    "inlineChat.finishOnType": true,
+    "inlineChat.lineEmptyHint": true,
+    "files.associations": {
+        "*.*.md": "markdown"
+    },
+    "github.copilot.chat.pullRequestDescriptionGeneration.instructions": [
+        {
+            "text": "The pull request description should be short and concise; ideally summarized in one or two sentences."
+        }
+    ],
+    "gitlens.graph.minimap.enabled": false,
+    "chat.tools.terminal.autoApprove": {
+        "cd": true,
+        "echo": true,
+        "ls": true,
+        "pwd": true,
+        "cat": true,
+        "head": true,
+        "tail": true,
+        "findstr": true,
+        "wc": true,
+        "tr": true,
+        "cut": true,
+        "cmp": true,
+        "which": true,
+        "basename": true,
+        "dirname": true,
+        "realpath": true,
+        "readlink": true,
+        "stat": true,
+        "file": true,
+        "du": true,
+        "df": true,
+        "sleep": true,
+        "git status": true,
+        "git log": true,
+        "git show": true,
+        "git diff": true,
+        "Get-ChildItem": true,
+        "Get-Content": true,
+        "Get-Date": true,
+        "Get-Random": true,
+        "Get-Location": true,
+        "Write-Host": true,
+        "Write-Output": true,
+        "Split-Path": true,
+        "Join-Path": true,
+        "Start-Sleep": true,
+        "Where-Object": true,
+        "/^Select-[a-z0-9]/i": true,
+        "/^Measure-[a-z0-9]/i": true,
+        "/^Compare-[a-z0-9]/i": true,
+        "/^Format-[a-z0-9]/i": true,
+        "/^Sort-[a-z0-9]/i": true,
+        "column": true,
+        "/^column\\b.*-c\\s+[0-9]{4,}/": false,
+        "date": true,
+        "/^date\\b.*(-s|--set)\\b/": false,
+        "find": true,
+        "/^find\\b.*-(delete|exec|execdir|fprint|fprintf|fls|ok|okdir)\\b/": false,
+        "grep": true,
+        "/^grep\\b.*-(f|P)\\b/": false,
+        "sort": true,
+        "/^sort\\b.*-(o|S)\\b/": false,
+        "tree": true,
+        "/^tree\\b.*-o\\b/": false,
+        "/\\(.+\\)/": {
+            "approve": false,
+            "matchCommandLine": true
+        },
+        "/\\{.+\\}/": {
+            "approve": false,
+            "matchCommandLine": true
+        },
+        "/`.+`/": {
+            "approve": false,
+            "matchCommandLine": true
+        },
+        "rm": false,
+        "rmdir": false,
+        "del": false,
+        "Remove-Item": false,
+        "ri": false,
+        "rd": false,
+        "erase": false,
+        "dd": false,
+        "kill": false,
+        "ps": false,
+        "top": false,
+        "Stop-Process": false,
+        "spps": false,
+        "taskkill": false,
+        "taskkill.exe": false,
+        "curl": false,
+        "wget": false,
+        "Invoke-RestMethod": false,
+        "Invoke-WebRequest": false,
+        "irm": false,
+        "iwr": false,
+        "chmod": false,
+        "chown": false,
+        "Set-ItemProperty": false,
+        "sp": false,
+        "Set-Acl": false,
+        "jq": false,
+        "xargs": false,
+        "eval": false,
+        "Invoke-Expression": false,
+        "iex": false,
+        "cat > /home/jchi/projects/helios/frontend/src/pages/admin/users/user.spec.tsx << 'EOF'\nimport type {\n    GetAdminUserWithGroups,\n    GetMFAMethod,\n    RedactUserData,\n    SetMFAMethod,\n} from \"data/models/admin/__generated__/user.gql\";\nimport {\n    mockGetAdminUserWithGroupsQuery,\n    mockGetMfaMethodQuery,\n    mockRedactUserDataMutation,\n    mockSetMfaMethodMutation,\n} from \"data/models/admin/__generated__/user.gql\";\nimport type { VerifyAdminUser } from \"pages/admin/users/__generated__/user\";\nimport { mockVerifyAdminUserMutation } from \"pages/admin/users/__generated__/user\";\n\nimport { MFAMethod } from \"__generated__/admin/global-types\";\nimport matchers from \"@cypress/support/matchers\";\nimport { adminOrganizationDetailsInfo } from \"fixtures/model-factory\";\nimport { HttpResponse } from \"msw\";\nimport PortalApp from \"pages/_app\";\nimport * as React from \"react\";\nimport { render, setupMockServer } from \"testutil/cct\";\nimport { v4 as uuidv4 } from \"uuid\";\n\ndescribe(\"Admin User Page\", { retries: { runMode: 1 } }, () => {\n    beforeEach(() => {\n        window.history.replaceState({}, \"\", \"/\");\n        cy.setupMockAdminAuth({\n            groups: [\n                \"portal-license-admin\",\n                \"portal-cluster-admin\",\n                \"portal-auth-admin\",\n            ],\n        });\n    });\n\n    // Batman-themed test data\n    const bruceWayneUserID = uuidv4();\n    const bruceWayne: GetAdminUserWithGroups[\"user\"] = {\n        __typename: \"User\",\n        userID: bruceWayneUserID,\n        email: \"batman@wayneenterprises.com\",\n        emailVerified: false,\n        firstName: \"Bruce\",\n        lastName: \"Wayne\",\n        createdAt: \"2020-01-15T08:00:00Z\",\n        attributes: {\n            phoneNumber: \"+1-555-BATMAN\",\n            jobTitle: \"CEO & Vigilante\",\n            jobRole: \"Executive\",\n            jobFunction: \"Crime Fighting\",\n            companyName: \"Wayne Enterprises\",\n        },\n        organizations: [\n            adminOrganizationDetailsInfo({\n                name: \"Wayne Enterprises\",\n                contactEmail: \"contact@wayneenterprises.com\",\n            }),\n            adminOrganizationDetailsInfo({\n                name: \"Gotham City Police Department\",\n                contactEmail: \"commissioner@gcpd.gov\",\n            }),\n        ],\n    };\n\n    const redactedBruceWayne: GetAdminUserWithGroups[\"user\"] = {\n        ...bruceWayne,\n        attributes: {\n            ...bruceWayne.attributes,\n            redacted: \"2024-12-01T10:00:00Z\",\n        },\n    };\n\n    setupMockServer([\n        mockGetAdminUserWithGroupsQuery(({ variables }) => {\n            if (variables.id === \"redacted-user-id\") {\n                return HttpResponse.json({\n                    data: {\n                        user: redactedBruceWayne,\n                        userGroups: [],\n                    },\n                });\n            }\n            return HttpResponse.json({\n                data: {\n                    user: bruceWayne,\n                    userGroups: [\"portal-license-admin\"],\n                },\n            });\n        }),\n        mockGetMfaMethodQuery(({ variables }) => {\n            return HttpResponse.json({\n                data: {\n                    mfaMethod: MFAMethod.email,\n                },\n            });\n        }),\n        mockVerifyAdminUserMutation(({ variables }) => {\n            return HttpResponse.json({\n                data: {\n                    userVerify: true,\n                },\n            });\n        }),\n        mockSetMfaMethodMutation(({ variables }) => {\n            return HttpResponse.json({\n                data: {\n                    setMFAMethod: true,\n                },\n            });\n        }),\n        mockRedactUserDataMutation(({ variables }) => {\n            return HttpResponse.json({\n                data: {\n                    redactUserData: true,\n                },\n            });\n        }),\n    ]);\n\n    // Feature 1: Display user information\n    it(\"should display all user information when page loads\", () => {\n        window.history.pushState(\n            {},\n            \"\",\n            `/admin/users/user?userID=${bruceWayneUserID}`\n        );\n\n        render(<PortalApp />);\n\n        // Verify breadcrumbs and header\n        cy.findByRole(\"link\", { name: \"Users\" }).should(matchers.beVisible());\n        cy.findByText(\"Bruce Wayne\").should(matchers.beVisible());\n        cy.findByText(\"batman@wayneenterprises.com\").should(\n            matchers.beVisible()\n        );\n\n        // Verify job information section\n        cy.findTopContentByTitle(\"Job Role\").within(() => {\n            cy.findByText(\"Executive\").should(matchers.beVisible());\n        });\n\n        cy.findTopContentByTitle(\"Job Title\").within(() => {\n            cy.findByText(\"CEO & Vigilante\").should(matchers.beVisible());\n        });\n\n        cy.findTopContentByTitle(\"Company\").within(() => {\n            cy.findByText(\"Wayne Enterprises\").should(matchers.beVisible());\n        });\n\n        // Verify contact information\n        cy.findTopContentByTitle(\"Phone Number\").within(() => {\n            cy.findByText(\"+1-555-BATMAN\").should(matchers.beVisible());\n        });\n\n        // Verify email verification status shows verify button (not verified)\n        cy.findTopContentByTitle(\"Email Verified\").within(() => {\n            cy.findByRole(\"button\", { name: \"Verify\" }).should(\n                matchers.beVisible()\n            );\n        });\n\n        // Verify created date\n        cy.findTopContentByTitle(\"Created\").within(() => {\n            cy.findByText(/Jan 15, 2020/).should(matchers.beVisible());\n        });\n\n        // Verify MFA method\n        cy.findTopContentByTitle(\"Multi-factor Authentication Method\").within(\n            () => {\n                cy.findByText(\"Email\").should(matchers.beVisible());\n            }\n        );\n    });\n\n    // Feature 2: View all user attributes in modal\n    it(\"should display all user attributes in a modal when 'View All Attributes' button is clicked\", () => {\n        window.history.pushState(\n            {},\n            \"\",\n            `/admin/users/user?userID=${bruceWayneUserID}`\n        );\n\n        render(<PortalApp />);\n\n        // Click the \"View All Attributes\" button\n        cy.findByRole(\"button\", { name: \"View All Attributes\" }).click();\n\n        // Verify modal is open\n        cy.findByRole(\"heading\", { name: \"All Attributes\" }).should(\n            matchers.beVisible()\n        );\n\n        // Verify JSON content is displayed\n        cy.findByText(/\"phoneNumber\"/).should(matchers.beVisible());\n        cy.findByText(/\"jobTitle\"/).should(matchers.beVisible());\n        cy.findByText(/\"Wayne Enterprises\"/).should(matchers.beVisible());\n    });\n\n    // Feature 3: Verify user email (license managers only)\n    it(\"should verify user email when 'Verify' button is clicked\", () => {\n        window.history.pushState(\n            {},\n            \"\",\n            `/admin/users/user?userID=${bruceWayneUserID}`\n        );\n\n        render(<PortalApp />);\n\n        // Verify button should be visible and enabled for license managers\n        cy.findTopContentByTitle(\"Email Verified\").within(() => {\n            cy.findByRole(\"button\", { name: \"Verify\" })\n                .should(matchers.beVisible())\n                .should(matchers.notBeDisabled());\n        });\n\n        // Start intercepting GraphQL queries to catch the refetch after verify\n        let verifyMutationCalled = false;\n        let refetchQueryCalled = false;\n\n        setupMockServer([\n            mockVerifyAdminUserMutation(({ variables }) => {\n                verifyMutationCalled = true;\n                return HttpResponse.json({\n                    data: {\n                        userVerify: true,\n                    },\n                });\n            }),\n            mockGetAdminUserWithGroupsQuery(({ variables }) => {\n                if (verifyMutationCalled) {\n                    refetchQueryCalled = true;\n                    return HttpResponse.json({\n                        data: {\n                            user: {\n                                ...bruceWayne,\n                                emailVerified: true,\n                            },\n                            userGroups: [\"portal-license-admin\"],\n                        },\n                    });\n                }\n                return HttpResponse.json({\n                    data: {\n                        user: bruceWayne,\n                        userGroups: [\"portal-license-admin\"],\n                    },\n                });\n            }),\n        ]);\n\n        // Click verify button\n        cy.findTopContentByTitle(\"Email Verified\").within(() => {\n            cy.findByRole(\"button\", { name: \"Verify\" }).click();\n        });\n\n        // Verify the mutation was called and UI updated\n        cy.wrap(null).then(() => {\n            expect(verifyMutationCalled).to.be.true;\n        });\n\n        // After refetch, should show \"Yes\" instead of button\n        cy.findTopContentByTitle(\"Email Verified\").within(() => {\n            cy.findByText(\"Yes\").should(matchers.beVisible());\n        });\n    });\n\n    // Feature 4: Edit MFA method (auth admins only)\n    it(\"should change MFA method when auth admin edits it\", () => {\n        window.history.pushState(\n            {},\n            \"\",\n            `/admin/users/user?userID=${bruceWayneUserID}`\n        );\n\n        render(<PortalApp />);\n\n        // Click Edit button for MFA method\n        cy.findTopContentByTitle(\"Multi-factor Authentication Method\").within(\n            () => {\n                cy.findByRole(\"button\", { name: \"Edit\" }).click();\n            }\n        );\n\n        // Verify form is displayed\n        cy.findByRole(\"heading\", { name: \"Edit MFA Method for user\" }).should(\n            matchers.beVisible()\n        );\n\n        // Select \"Skip MFA\" option\n        cy.findByText(\"Skip MFA\").click();\n\n        // Submit the form\n        cy.findByRole(\"button\", { name: \"Save\" }).click();\n\n        // Verify success toast\n        cy.findByText(\"MFA skipped for this user\").should(matchers.beVisible());\n    });\n\n    // Feature 5: Redact user data (portal managers only)\n    it(\"should redact user data when portal manager confirms redaction\", () => {\n        window.history.pushState(\n            {},\n            \"\",\n            `/admin/users/user?userID=${bruceWayneUserID}`\n        );\n\n        render(<PortalApp />);\n\n        // Click \"Redact User\" button\n        cy.findByRole(\"button\", { name: \"Redact User\" }).click();\n\n        // Verify redaction form is displayed\n        cy.findByRole(\"heading\", { name: \"Redact User\" }).should(\n            matchers.beVisible()\n        );\n\n        // Verify warning message\n        cy.findByText(\"This action can not be undone.\").should(\n            matchers.beVisible()\n        );\n        cy.findByText(/Are you sure you want to redact user/).should(\n            matchers.beVisible()\n        );\n\n        // Enter reason\n        cy.findByLabelText(\"Redact User Reason (optional)\").type(\n            \"User requested data deletion per GDPR\"\n        );\n\n        // Check confirmation checkbox\n        cy.findByLabelText(\"Confirm Redact\").click();\n\n        // Setup mock for successful redaction\n        let redactMutationCalled = false;\n        setupMockServer([\n            mockRedactUserDataMutation(({ variables }) => {\n                redactMutationCalled = true;\n                expect(variables.id).to.equal(bruceWayneUserID);\n                expect(variables.reason).to.include(\"GDPR\");\n                return HttpResponse.json({\n                    data: {\n                        redactUserData: true,\n                    },\n                });\n            }),\n            mockGetAdminUserWithGroupsQuery(({ variables }) => {\n                if (redactMutationCalled) {\n                    return HttpResponse.json({\n                        data: {\n                            user: redactedBruceWayne,\n                            userGroups: [\"portal-license-admin\"],\n                        },\n                    });\n                }\n                return HttpResponse.json({\n                    data: {\n                        user: bruceWayne,\n                        userGroups: [\"portal-license-admin\"],\n                    },\n                });\n            }),\n        ]);\n\n        // Submit redaction\n        cy.findByRole(\"button\", { name: \"Submit\" }).click();\n\n        // Verify success toast\n        cy.findByText(\"User was successfully redacted\").should(\n            matchers.beVisible()\n        );\n    });\n\n    // Feature 6: Display user organizations list\n    it(\"should display list of organizations user belongs to\", () => {\n        window.history.pushState(\n            {},\n            \"\",\n            `/admin/users/user?userID=${bruceWayneUserID}`\n        );\n\n        render(<PortalApp />);\n\n        // Verify Organizations tab is active\n        cy.findByRole(\"tab\", { name: /Organizations/ }).should(\n            matchers.beVisible()\n        );\n\n        // Verify both organizations are displayed in the table\n        cy.findByText(\"Wayne Enterprises\").should(matchers.beVisible());\n        cy.findByText(\"Gotham City Police Department\").should(\n            matchers.beVisible()\n        );\n\n        // Verify contact emails are displayed\n        cy.findByText(\"contact@wayneenterprises.com\").should(\n            matchers.beVisible()\n        );\n        cy.findByText(\"commissioner@gcpd.gov\").should(matchers.beVisible());\n    });\n});\nEOF": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/home/jchi/projects/helios/frontend/src/pages/admin/users/user.spec.tsx": true,
+        "'EOF'": true,
+        "MFAMethod": true,
+        "import": true,
+        "LONG_EM_DASH": true,
+        "GetAdminUserWithGroups": true,
+        "mockGetAdminUserWithGroupsQuery,": true,
+        "HttpResponse": true,
+        "render,": true,
+        "formatDateTime": true,
+        "v4": true,
+        "describe(\"[Admin]": true,
+        "//": true,
+        "const": true,
+        "__typename:": true,
+        "phoneNumber:": true,
+        "setupMockServer([": true,
+        "return": true,
+        "data:": true,
+        "user:": true,
+        "}),": true,
+        "mfaMethod:": true,
+        "beforeEach(()": true,
+        "window.history.replaceState(": true,
+        "},": true,
+        "cy.setupMockAdminAuth(": true,
+        "groups:": true,
+        "})": true,
+        "window.history.pushState(": true,
+        "userID}`": true,
+        "render(": true,
+        "PortalApp": true,
+        ")": true,
+        "cy.findByText(\"SpongeBob": true,
+        "cy.findByText(`$": true,
+        "LONG_EM_DASH}": true,
+        "cy.findByText(\"Chef\").should(matchers.beVisible())": true,
+        "cy.findByText(\"Fry": true,
+        "cy.findByText(\"Krusty": true,
+        "cy.findByText(\"555-KRUSTY\").should(matchers.beVisible())": true,
+        "cy.findByText(\"Yes\").should(matchers.beVisible())": true,
+        "timezone:": true,
+        "cy.findByText(expectedDate).should(matchers.beVisible())": true,
+        "EOF": true,
+        "pnpm": true,
+        "Timed": true,
+        "expected\"": true,
+        "failing": true,
+        "FAIL": true,
+        "PASS": true,
+        "it\\(": true,
+        "should)\"": true
+    },
+    "chat.fontSize": 14,
+    "chat.editor.fontSize": 14,
+    "chat.viewSessions.orientation": "stacked"
 }

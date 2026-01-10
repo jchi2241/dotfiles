@@ -26,16 +26,7 @@
     palette = "#2e3436:#ef5350:#80cbc4:#ffeb95:#82aaff:#c792ea:#addb67:#d3d7cf:#555753:#ef5350:#80cbc4:#ffeb95:#82aaff:#c792ea:#addb67:#eeeeec"
     use_system_font = False
   [[Solarized Dark]]
-    background_color = "#002b36"
-    cursor_color = "#eee8d5"
-    foreground_color = "#eee8d5"
-    palette = "#073642:#dc322f:#859900:#b58900:#268bd2:#d33682:#2aa198:#eee8d5:#586e75:#cb4b16:#586e75:#657b83:#839496:#6c71c4:#93a1a1:#fdf6e3"
-  [[Night Owl]]
-    background_color = "#011627"
-    cursor_color = "#80a4c2"
-    cursor_color_fg = False
-    foreground_color = "#d6deeb"
-    palette = "#2e3436:#ef5350:#80cbc4:#ffeb95:#82aaff:#c792ea:#addb67:#d3d7cf:#555753:#ef5350:#80cbc4:#ffeb95:#82aaff:#c792ea:#addb67:#eeeeec"
+    cursor_color = "#aaaaaa"
   [[Pnevma]]
     background_color = "#1c1c1c"
     cursor_color = "#e4c9af"
@@ -46,6 +37,8 @@
     cursor_color = "#bbbbbb"
     foreground_color = "#e6d4a3"
     palette = "#161819:#f73028:#aab01e:#f7b125:#719586:#c77089:#7db669:#faefbb:#7f7061:#be0f17:#868715:#cc881a:#377375:#a04b73:#578e57:#e6d4a3"
+  [[Night Owl]]
+    cursor_color = "#aaaaaa"
 [layouts]
   [[default]]
     [[[window0]]]

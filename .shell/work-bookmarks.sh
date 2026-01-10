@@ -19,11 +19,14 @@ alias lhel="kcadm-login && kcadm update realms/memsql -s verifyEmail=false"
 alias rkct="./deploy/kube/util/reload-keycloak-img.sh && ./deploy/kube/util/reset-postgres.sh"
 alias nukehelios="hel && make docker-nuke && rm -rf singlestore.com/helios/bin && cd singlestore.com/helios && goclean && hel && make kube-init"
 alias login-ecr="cd ~/projects/aws-ci-runners && make login-registry && cd -"
+alias login-cc="cd ~ && aws sso login --profile=EngAIDevUser-651246146166 && cd -"
 alias nukedocker='
   [ "$(docker ps -q)" ] && docker stop $(docker ps -q);
   [ "$(docker ps -aq)" ] && docker rm $(docker ps -aq);
   [ "$(docker volume ls -q)" ] && docker volume rm $(docker volume ls -q)
 '
+alias kube-init-analyst="NOVA=1 SINGLESTORE_NEXUS=/home/jchi/projects/singlestore-nexus make kube-init && make start-nova-workspace && make setup-analyst"
+
 # Test example commands
 # Reminders
 # - Run a single test, add env GO_TEST_VERBOSE='-v -run <TestName>'
@@ -70,7 +73,7 @@ setup-notebooks() {
 
 # Prep projects for a diff
 alias pbf="bf && make lint-fix && make lint && make test"
-alias lintfe="hel && make frontend-prettier-full-check && make frontend-lint-fix && make frontend-lint && make frontend-tsc"
+alias lint="hel && make cp-tsc && make cp-lint-fix"
 alias pstudio="studio && cd frontend && npm run prettier && npm run lint && npm run tsc && npm run test"
 
 # Other
@@ -81,6 +84,18 @@ alias fl="flameshot gui"
 
 alias settoken_prd="singlestore-auth-helper --baseURL https://portal.singlestore.com/admin/admin-sso --env-name=TOKEN && export TOKEN"
 alias e2e-email-off='hel && kcadm-login && kcadm update realms/memsql -s verifyEmail=false'
+
+# pullai: Update heliosai, singlestore-ai and singlestore-nexus, unified-model-gateway repos
+# Usage: pullai (pulls latest main for all AI repos)
+unalias pullai 2>/dev/null # Remove old alias if it exists
+function pullai {
+  local orig_dir=$(pwd)
+  cd ~/projects/heliosai/ && git checkout main && git pull &&
+    cd ../singlestore-nexus/ && git checkout main && git pull &&
+    cd ../singlestore-ai/ && git checkout master && git pull &&
+    cd ../unified-model-gateway/ && git checkout main && git pull
+  cd "$orig_dir" # Always return, regardless of success/failure
+}
 
 function keepheaders() {
   keyword=$1  # Keyword to grep for
