@@ -54,6 +54,10 @@
         path: .claude/agents
         create: true
         force: true
+    ~/.claude/commands:
+        path: .claude/commands
+        create: true
+        force: true
 
     # MCP configuration
     ~/.config/Code/User/mcp.json:
