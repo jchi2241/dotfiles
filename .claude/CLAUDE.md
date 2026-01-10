@@ -1,0 +1,1 @@
+- never force push without explicitly asking for permissions. this is incredibly dangerous

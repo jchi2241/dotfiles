@@ -33,6 +33,34 @@
         create: true
         force: true
 
+    # Claude Code configuration
+    ~/.claude/settings.json:
+        path: .claude/settings.json
+        create: true
+        force: true
+    ~/.claude/settings.local.json:
+        path: .claude/settings.local.json
+        create: true
+        force: true
+    ~/.claude/CLAUDE.md:
+        path: .claude/CLAUDE.md
+        create: true
+        force: true
+    ~/.claude/hooks:
+        path: .claude/hooks
+        create: true
+        force: true
+    ~/.claude/agents:
+        path: .claude/agents
+        create: true
+        force: true
+
+    # MCP configuration
+    ~/.config/Code/User/mcp.json:
+        path: .config/Code/User/mcp.json
+        create: true
+        force: true
+
 - shell:
     -
         command: cat .vscode/extensions.txt | xargs -L 1 echo code --install-extension | bash
