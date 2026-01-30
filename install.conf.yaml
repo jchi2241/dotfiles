@@ -58,6 +58,14 @@
         path: .claude/commands
         create: true
         force: true
+    ~/.claude/skills:
+        path: .claude/skills
+        create: true
+        force: true
+    ~/.claude/thoughts:
+        path: .claude/thoughts
+        create: true
+        force: true
 
     # MCP configuration
     ~/.config/Code/User/mcp.json:

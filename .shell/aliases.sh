@@ -27,7 +27,6 @@ alias gil='git log --graph --abbrev-commit --stat -C --decorate --date=local'
 alias gils="git log --graph --abbrev-commit --pretty=format:'%C(red)%h%C(reset) -%C(yellow)%d%C(reset) %s %C(green)(%cr) %C(bold blue)<%an>%C(reset)' -C --decorate --date=local"
 alias gis='git status'
 alias gid='git diff -C --date=local'
-alias giw='git show -C --date=local --decorate'
 alias gic='git checkout'
 alias gib='git branch'
 alias gibs='(echo " |BRANCH|MESSAGE|UPDATED"; git for-each-ref --sort=committerdate refs/heads/ --format="%(if)%(HEAD)%(then)*%(else) %(end)|%(refname:short)|%(subject)|%(committerdate:relative)") | column -t -s"|" | awk "BEGIN{GRN=sprintf(\"%c[1;32m\",27);RST=sprintf(\"%c[0m\",27)} NR==1{print;next} \$1==\"*\"{print GRN \$0 RST; next} {print}"'
@@ -133,4 +132,113 @@ alias mds="code ~/Documents/sandbox.md"
 
 alias ucode="sudo apt install code --only-upgrade"
 alias uchrome="sudo apt install google-chrome-stable --only-upgrade"
+
+# Git worktree helpers
+# worktree-add <branch> [base] - create worktree with new branch
+# worktree-cd <branch>         - cd into existing worktree
+# worktree-rm <branch>         - remove worktree and delete branch
+# worktree-ls                  - list all worktrees
+worktree-add() {
+  if [ $# -lt 1 ]; then
+    echo "Usage: worktree-add <branch-name> [base-branch]"
+    echo "  Creates a new worktree with a new branch"
+    echo "  Example: worktree-add chi/feature-x"
+    echo "  Example: worktree-add chi/feature-x origin/master"
+    return 1
+  fi
+
+  local branch="$1"
+  local base="${2:-HEAD}"
+  local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+  local dir_name="${branch//\//-}"  # replace slashes with dashes
+  local worktree_path="../${repo_name}-${dir_name}"
+
+  git worktree add "$worktree_path" -b "$branch" "$base" && \
+    echo "Created worktree at $worktree_path" && \
+    cd "$worktree_path"
+}
+
+# Remove worktree and its branch
+worktree-rm() {
+  if [ $# -lt 1 ]; then
+    echo "Usage: worktree-rm <branch-name>"
+    echo "  Removes the worktree and deletes the branch"
+    echo "  Example: worktree-rm chi/feature-x"
+    return 1
+  fi
+
+  local branch="$1"
+  local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+  local dir_name="${branch//\//-}"
+  local worktree_path="../${repo_name}-${dir_name}"
+
+  if [ ! -d "$worktree_path" ]; then
+    echo "Worktree not found at $worktree_path"
+    echo "Available worktrees:"
+    git worktree list
+    return 1
+  fi
+
+  git worktree remove "$worktree_path" && \
+    git branch -d "$branch" && \
+    echo "Removed worktree and branch: $branch"
+}
+
+# List worktrees
+alias worktree-ls='git worktree list'
+
+# Short aliases for worktree commands
+alias wta='worktree-add'
+alias wtl='worktree-ls'
+alias wtr='worktree-rm'
+alias wtc='worktree-cd'
+
+# cd into an existing worktree
+worktree-cd() {
+  if [ $# -lt 1 ]; then
+    echo "Usage: worktree-cd <branch-name>"
+    echo "  cd into an existing worktree"
+    echo "Available worktrees:"
+    git worktree list
+    return 1
+  fi
+
+  local branch="$1"
+  local worktree_path=$(git worktree list --porcelain | grep -B2 "branch refs/heads/$branch$" | grep '^worktree' | sed 's/^worktree //')
+
+  if [ -z "$worktree_path" ]; then
+    echo "No worktree found for branch: $branch"
+    echo "Available worktrees:"
+    git worktree list
+    return 1
+  fi
+
+  cd "$worktree_path"
+}
+
+# Zsh completions for worktree commands
+if [ -n "$ZSH_VERSION" ]; then
+  _worktree-rm() {
+    local worktree_branches
+    worktree_branches=($(git worktree list --porcelain 2>/dev/null | grep '^branch' | sed 's|branch refs/heads/||'))
+    _describe 'worktree branch' worktree_branches
+  }
+  compdef _worktree-rm worktree-rm
+  compdef _worktree-rm worktree-cd
+
+  _worktree-add() {
+    if [ "$CURRENT" -eq 3 ]; then
+      # Second arg: complete to branches (for base)
+      local branches
+      branches=($(git branch -a --format='%(refname:short)' 2>/dev/null))
+      _describe 'base branch' branches
+    fi
+  }
+  compdef _worktree-add worktree-add
+
+  # Completions for short aliases
+  compdef _worktree-cd wtc
+  compdef _worktree-rm wtr
+  compdef _worktree-add wta
+fi
 

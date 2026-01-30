@@ -25,7 +25,7 @@ alias nukedocker='
   [ "$(docker ps -aq)" ] && docker rm $(docker ps -aq);
   [ "$(docker volume ls -q)" ] && docker volume rm $(docker volume ls -q)
 '
-alias kube-init-analyst="NOVA=1 SINGLESTORE_NEXUS=/home/jchi/projects/singlestore-nexus make kube-init && make start-nova-workspace && make setup-analyst"
+alias init-analyst="NOVA=1 SINGLESTORE_NEXUS=/home/jchi/projects/singlestore-nexus make kube-init && make start-nova-workspace && make setup-analyst && make frontend-start"
 
 # Test example commands
 # Reminders
@@ -90,11 +90,27 @@ alias e2e-email-off='hel && kcadm-login && kcadm update realms/memsql -s verifyE
 unalias pullai 2>/dev/null # Remove old alias if it exists
 function pullai {
   local orig_dir=$(pwd)
+  local cyan='\033[1;36m'
+  local green='\033[1;32m'
+  local reset='\033[0m'
+
+  echo -e "${cyan}==> Pulling heliosai...${reset}"
   cd ~/projects/heliosai/ && git checkout main && git pull &&
-    cd ../singlestore-nexus/ && git checkout main && git pull &&
-    cd ../singlestore-ai/ && git checkout master && git pull &&
-    cd ../unified-model-gateway/ && git checkout main && git pull
+
+  echo -e "${cyan}==> Pulling singlestore-nexus...${reset}"
+  cd ~/projects/singlestore-nexus/ && git checkout main && git pull &&
+
+  echo -e "${cyan}==> Pulling singlestore-ai...${reset}"
+  cd ~/projects/singlestore-ai/ && git checkout master && git pull &&
+
+  echo -e "${cyan}==> Pulling unified-model-gateway...${reset}"
+  cd ~/projects/unified-model-gateway/ && git checkout main && git pull &&
+
+  echo -e "${cyan}==> Pulling helios...${reset}"
+  cd ~/projects/helios/ && git checkout master && git pull
+
   cd "$orig_dir" # Always return, regardless of success/failure
+  echo -e "${green}==> Done.${reset}"
 }
 
 function keepheaders() {
