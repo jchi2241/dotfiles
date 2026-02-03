@@ -1,35 +1,57 @@
 ---
 description: Set session context to work within a specific git worktree
-allowed-tools: Bash(git:*), Read
+allowed-tools: Bash(git:*), Bash(ls:*), Read
 ---
 
 # Worktree Context
 
 Set the working context for this session to a specific git worktree.
 
-**Argument:** `$ARGUMENTS` (path to the worktree directory)
+**Argument:** `$ARGUMENTS` (branch name pattern or path to the worktree directory)
 
-## Step 1: Validate the worktree
+## Step 1: Find the worktree
 
-Verify the provided path is a valid git worktree:
+The argument can be:
+1. A direct path (e.g., `/home/jchi/projects/helios-chi-feature`)
+2. A branch name (e.g., `chi/feedback-p1-fix-auto-scroll`)
+3. A partial match (e.g., `feedback-p1`)
 
-!`cd "$ARGUMENTS" && git rev-parse --is-inside-work-tree && git worktree list`
+Run `git worktree list` on each repository to find worktrees matching the pattern. Convert slashes to dashes for matching since worktree directories use dashes.
 
-!`cd "$ARGUMENTS" && git rev-parse --show-toplevel`
+Repositories to search:
+- ~/projects/helios
+- ~/projects/heliosai
+- ~/projects/singlestore-nexus
+- ~/projects/unified-model-gateway
 
-## Step 2: Gather worktree info
+Run these commands to list all worktrees:
 
-Get the current branch and upstream info:
+```bash
+git -C ~/projects/helios worktree list
+git -C ~/projects/heliosai worktree list
+git -C ~/projects/singlestore-nexus worktree list
+git -C ~/projects/unified-model-gateway worktree list
+```
 
-!`cd "$ARGUMENTS" && git branch --show-current`
+Then filter results for paths containing: `$ARGUMENTS` (with slashes converted to dashes)
 
-!`cd "$ARGUMENTS" && git remote -v`
+## Step 2: Validate and gather info
+
+From the output above, identify the worktree path. If multiple matches, pick the best one or ask user.
+
+Then run these commands with the identified worktree path:
+
+```bash
+git -C PATH rev-parse --is-inside-work-tree
+git -C PATH branch --show-current
+git -C PATH log --oneline -3
+```
 
 ## Step 3: Confirm context
 
 After validating, inform the user:
 
-**IMPORTANT SESSION CONTEXT:**
+**SESSION CONTEXT SET:**
 
 From this point forward, all work in this session is scoped to:
 - **Worktree path:** The validated worktree directory

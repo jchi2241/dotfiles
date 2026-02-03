@@ -1,1 +1,2 @@
 - never force push without explicitly asking for permissions. this is incredibly dangerous
+- when i ask you to fix my claude settings, commands, skills, ...look in ~/.claude, not in .claude

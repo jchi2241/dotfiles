@@ -1,7 +1,7 @@
 ---
 name: pr-create
 description: Create pull requests with well-written summaries. Use when the user asks to create a PR, open a pull request, or push changes for review.
-allowed-tools: Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(git diff:*) Bash(gh pr:*) Bash(scripts/:*) Read
+allowed-tools: Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(git diff:*) Bash(gh pr:*) Bash(~/.claude/skills/pr-create/scripts/:*) Read
 ---
 
 # Create Pull Request
@@ -14,14 +14,14 @@ Create a PR for the current branch. You have access to the full conversation his
 
 1. **Check state** - Run the script below to get branch info, commits, and check for uncommitted changes:
    ```
-   scripts/pr-state.sh
+   ~/.claude/skills/pr-create/scripts/pr-state.sh
    ```
 2. **If uncommitted changes exist** - Ask the user if they want to continue anyway
 3. **Understand the why** - Review the conversation history to understand the purpose and motivation behind the changes
 4. **Draft PR** - Combine conversation context + commits to write a meaningful title and summary
 5. **Push if needed** - Use the safe push script (rejects force pushes):
    ```
-   scripts/safe-push.sh -u origin HEAD
+   ~/.claude/skills/pr-create/scripts/safe-push.sh -u origin HEAD
    ```
 6. **Create PR** - Use `gh pr create` with the drafted content
 
