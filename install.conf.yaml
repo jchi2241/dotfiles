@@ -242,3 +242,10 @@
         stdin: true
         stdout: true
         stderr: true
+    -
+        command: gsettings set org.gnome.desktop.input-sources xkb-options "['ctrl:swap_lalt_lctl', 'caps:escape']"
+        description: Configuring keyboard (swap left ctrl/alt, caps lock to escape)...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
