@@ -65,3 +65,5 @@ export PATH="/home/jchi/.local/bin:$PATH"
 # sudo sysctl -w fs.inotify.max_queued_events=2099999999
 # source ~/monagent-en
 
+
+if [ -e /home/jchi/.nix-profile/etc/profile.d/nix.sh ]; then . /home/jchi/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer

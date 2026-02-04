@@ -121,6 +121,13 @@
         stdout: true
         stderr: true
     -
+        command: command -v nix >/dev/null 2>&1 || sh <(curl -L https://nixos.org/nix/install) --no-daemon
+        description: Installing Nix (single-user mode)...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
         command: command -v bison >/dev/null 2>&1 || sudo apt-get install -y bison
         description: Installing bison (required for gvm)...
         quiet: false
@@ -284,6 +291,21 @@
     -
         command: ./install-swap.sh
         description: Configuring swap (32GB, swappiness=10)...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: |
+            if [ "$SHELL" != "$(which zsh)" ]; then
+                sudo chsh -s "$(which zsh)" "$USER"
+                echo ""
+                echo "=========================================="
+                echo "Default shell changed to zsh."
+                echo "Please log out and back in for the change to take effect."
+                echo "=========================================="
+            fi
+        description: Setting zsh as default shell...
         quiet: false
         stdin: true
         stdout: true
