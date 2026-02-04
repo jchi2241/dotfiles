@@ -51,3 +51,9 @@ font-style = Medium
 # resize-overlay-duration = 4s 200ms
 
 keybind = performable:ctrl+c=copy_to_clipboard
+
+# Vim-style split navigation
+keybind = ctrl+shift+h=goto_split:left
+keybind = ctrl+shift+j=goto_split:bottom
+keybind = ctrl+shift+k=goto_split:top
+keybind = ctrl+shift+l=goto_split:right
