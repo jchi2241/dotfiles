@@ -226,13 +226,6 @@
         stdout: true
         stderr: true
     -
-        command: flatpak list | grep -q Kooha || flatpak install -y flathub io.github.seadve.Kooha
-        description: Installing Kooha (screen recorder)...
-        quiet: false
-        stdin: true
-        stdout: true
-        stderr: true
-    -
         command: command -v code >/dev/null 2>&1 || (curl -fsSL -o /tmp/vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64" && sudo apt install -y /tmp/vscode.deb && rm /tmp/vscode.deb)
         description: Installing VS Code...
         quiet: false
