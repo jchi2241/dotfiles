@@ -10,9 +10,11 @@ export FZF_DEFAULT_OPS="--extended"
 export FZF_DEFAULT_COMMAND="rg --files --hidden --ignore-file ~/.ignore"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
-#go
+# go
 export PATH=$PATH:/usr/local/go/bin
 
-#neovim
+# neovim
 export PATH=$PATH:/usr/local/bin/nvim
 
+# add local bin to path
+export PATH="$HOME/.local/bin:$PATH"

@@ -42,20 +42,12 @@
         path: .claude/settings.json
         create: true
         force: true
-    ~/.claude/settings.local.json:
-        path: .claude/settings.local.json
-        create: true
-        force: true
     ~/.claude/CLAUDE.md:
         path: .claude/CLAUDE.md
         create: true
         force: true
     ~/.claude/hooks:
         path: .claude/hooks
-        create: true
-        force: true
-    ~/.claude/agents:
-        path: .claude/agents
         create: true
         force: true
     ~/.claude/commands:
@@ -77,6 +69,11 @@
         create: true
         force: true
 
+    # Zsh theme (customized)
+    ~/.oh-my-zsh/themes/igorsilva.zsh-theme:
+        path: .config/zsh/themes/igorsilva.zsh-theme
+        force: true
+
 - shell:
     -
         command: |
@@ -91,6 +88,20 @@
     -
         command: command -v vim >/dev/null 2>&1 || sudo apt-get install -y vim
         description: Installing vim...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: '[ -f ~/.vim/autoload/plug.vim ] || curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+        description: Installing vim-plug...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: vim +PlugInstall +qall
+        description: Installing vim plugins...
         quiet: false
         stdin: true
         stdout: true
@@ -126,13 +137,6 @@
     -
         command: '[ -d ~/.oh-my-zsh ] || sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
         description: Installing oh-my-zsh...
-        quiet: false
-        stdin: true
-        stdout: true
-        stderr: true
-    -
-        command: '[ -f ~/.oh-my-zsh/themes/igorsilva.zsh-theme ] || curl -fsSL https://raw.githubusercontent.com/igor9silva/zsh-theme/master/igorsilva.zsh-theme > ~/.oh-my-zsh/themes/igorsilva.zsh-theme'
-        description: Installing igorsilva zsh theme...
         quiet: false
         stdin: true
         stdout: true
@@ -187,8 +191,15 @@
         stdout: true
         stderr: true
     -
-        command: command -v flameshot >/dev/null 2>&1 || sudo apt-get install -y flameshot
-        description: Installing Flameshot...
+        command: command -v gnome-screenshot >/dev/null 2>&1 || sudo apt-get install -y gnome-screenshot
+        description: Installing gnome-screenshot...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: '[ -x ~/.local/bin/satty ] || (curl -sL https://github.com/Satty-org/Satty/releases/download/v0.20.0/satty-x86_64-unknown-linux-gnu.tar.gz | tar xz -C ~/.local/bin --strip-components=0 ./satty && chmod +x ~/.local/bin/satty)'
+        description: Installing Satty (screenshot annotation)...
         quiet: false
         stdin: true
         stdout: true
@@ -196,6 +207,13 @@
     -
         command: command -v flatpak >/dev/null 2>&1 || sudo apt-get install -y flatpak
         description: Installing Flatpak...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: flatpak remote-list | grep -q flathub || flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        description: Adding Flathub repository...
         quiet: false
         stdin: true
         stdout: true
@@ -215,14 +233,35 @@
         stdout: true
         stderr: true
     -
-        command: command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash
+        command: '[ -x ~/.local/bin/claude ] || curl -fsSL https://claude.ai/install.sh | bash'
         description: Installing Claude Code CLI...
         quiet: false
         stdin: true
         stdout: true
         stderr: true
     -
-        command: cat .vscode/extensions.txt | xargs -L 1 echo code --install-extension | bash
+        command: command -v aws >/dev/null 2>&1 || (curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip && unzip -q /tmp/awscliv2.zip -d /tmp && sudo /tmp/aws/install && rm -rf /tmp/awscliv2.zip /tmp/aws)
+        description: Installing AWS CLI...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v gh >/dev/null 2>&1 || ((type -p wget >/dev/null || (sudo apt update && sudo apt install wget -y)) && sudo mkdir -p -m 755 /etc/apt/keyrings && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg && cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y)
+        description: Installing GitHub CLI...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v kubectl >/dev/null 2>&1 || (KUBE_VERSION=$(curl -fsSL https://dl.k8s.io/release/stable.txt | sed 's/\.[0-9]*$//') && sudo mkdir -p -m 755 /etc/apt/keyrings && curl -fsSL "https://pkgs.k8s.io/core:/stable:/${KUBE_VERSION}/deb/Release.key" | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg && sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg && echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBE_VERSION}/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null && sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list && sudo apt-get update && sudo apt-get install -y kubectl)
+        description: Installing kubectl...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: 'installed=$(code --list-extensions 2>/dev/null); while read ext; do echo "$installed" | grep -qiF "$ext" || code --install-extension "$ext"; done < .vscode/extensions.txt'
         description: Installing VSCode extensions...
         quiet: false
         stdin: true
@@ -236,15 +275,15 @@
         stdout: true
         stderr: true
     -
-        command: ./install-swap.sh
-        description: Configuring swap (32GB, swappiness=10)...
+        command: gsettings set org.gnome.desktop.input-sources xkb-options "['ctrl:swap_lalt_lctl', 'caps:escape']"
+        description: Configuring keyboard (swap left ctrl/alt, caps lock to escape)...
         quiet: false
         stdin: true
         stdout: true
         stderr: true
     -
-        command: gsettings set org.gnome.desktop.input-sources xkb-options "['ctrl:swap_lalt_lctl', 'caps:escape']"
-        description: Configuring keyboard (swap left ctrl/alt, caps lock to escape)...
+        command: ./install-swap.sh
+        description: Configuring swap (32GB, swappiness=10)...
         quiet: false
         stdin: true
         stdout: true

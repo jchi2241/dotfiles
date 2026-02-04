@@ -94,3 +94,19 @@ source ~/.dotfiles/.shell/bootstrap.sh
 # Source work-related bookmarks
 source ~/.dotfiles/.shell/work-bookmarks.sh
 
+
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+
+# fnm
+FNM_PATH="/home/jchi/.local/share/fnm"
+if [ -d "$FNM_PATH" ]; then
+  export PATH="$FNM_PATH:$PATH"
+  eval "`fnm env`"
+fi
+
+# fnm
+FNM_PATH="/root/.local/share/fnm"
+if [ -d "$FNM_PATH" ]; then
+  export PATH="$FNM_PATH:$PATH"
+  eval "`fnm env`"
+fi

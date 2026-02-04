@@ -80,7 +80,7 @@ alias pstudio="studio && cd frontend && npm run prettier && npm run lint && npm 
 alias bast="ssh bastion-1b"
 alias p2="pyenv global 2.7.17"
 alias p3="pyenv global 3.6.3"
-alias fl="flameshot gui"
+alias ss="gnome-screenshot -a -f /tmp/ss.png && satty --filename /tmp/ss.png"
 
 alias settoken_prd="singlestore-auth-helper --baseURL https://portal.singlestore.com/admin/admin-sso --env-name=TOKEN && export TOKEN"
 alias e2e-email-off='hel && kcadm-login && kcadm update realms/memsql -s verifyEmail=false'

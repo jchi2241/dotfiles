@@ -13,6 +13,32 @@ if [[ "$(uname -s)" != "Linux" ]]; then
     exit 1
 fi
 
+# Display current vs target configuration
+echo "=== Swap Configuration ==="
+echo ""
+echo "Current:"
+if [ -f /swapfile ]; then
+    current_size=$(stat -c%s /swapfile 2>/dev/null || echo 0)
+    current_size_human=$(numfmt --to=iec-i --suffix=B "$current_size" 2>/dev/null || echo "${current_size} bytes")
+    echo "  Swapfile: /swapfile (${current_size_human})"
+else
+    echo "  Swapfile: not configured"
+fi
+current_swappiness=$(cat /proc/sys/vm/swappiness 2>/dev/null || echo "unknown")
+echo "  Swappiness: ${current_swappiness}"
+echo ""
+echo "Target:"
+echo "  Swapfile: /swapfile (${SWAP_SIZE})"
+echo "  Swappiness: ${SWAPPINESS}"
+echo ""
+
+read -p "Proceed with swap configuration? [y/N] " -n 1 -r
+echo ""
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Aborted."
+    exit 0
+fi
+
 # Check if running with sudo capability
 if ! sudo -n true 2>/dev/null; then
     echo "Error: sudo requires password. Run in a terminal or use: sudo ./install-swap.sh"
