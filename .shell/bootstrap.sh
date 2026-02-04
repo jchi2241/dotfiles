@@ -1,7 +1,7 @@
 alias bootstrap="vim ~/.dotfiles/.shell/bootstrap.sh"
 
-# Increase hold down key rate
-xset r rate 200 50
+# Increase hold down key rate (Linux/X11 only)
+[[ "$(uname -s)" == "Linux" ]] && command -v xset &>/dev/null && xset r rate 200 50
 
 # fzf extended regex matchers
 export FZF_DEFAULT_OPS="--extended"

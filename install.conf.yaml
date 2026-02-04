@@ -32,6 +32,10 @@
         path: .terminator/config
         create: true
         force: true
+    ~/.config/ghostty/config:
+        path: .config/ghostty/config
+        create: true
+        force: true
 
     # Claude Code configuration
     ~/.claude/settings.json:
@@ -75,6 +79,55 @@
 
 - shell:
     -
+        command: command -v ghostty >/dev/null 2>&1 || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh)"
+        description: Installing Ghostty...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v terminator >/dev/null 2>&1 || sudo apt-get install -y terminator
+        description: Installing Terminator...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v flameshot >/dev/null 2>&1 || sudo apt-get install -y flameshot
+        description: Installing Flameshot...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v flatpak >/dev/null 2>&1 || sudo apt-get install -y flatpak
+        description: Installing Flatpak...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: flatpak list | grep -q Kooha || flatpak install -y flathub io.github.seadve.Kooha
+        description: Installing Kooha (screen recorder)...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v code >/dev/null 2>&1 || (curl -fsSL -o /tmp/vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64" && sudo apt install -y /tmp/vscode.deb && rm /tmp/vscode.deb)
+        description: Installing VS Code...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash
+        description: Installing Claude Code CLI...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
         command: cat .vscode/extensions.txt | xargs -L 1 echo code --install-extension | bash
         description: Installing VSCode extensions...
         quiet: false
@@ -84,6 +137,13 @@
     -
         command: ./install-iosevka.sh
         description: Installing Iosevka font...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: ./install-swap.sh
+        description: Configuring swap (32GB, swappiness=10)...
         quiet: false
         stdin: true
         stdout: true
