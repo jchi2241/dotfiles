@@ -79,6 +79,100 @@
 
 - shell:
     -
+        command: |
+            if ! grep -qE 'Ubuntu|Debian' /etc/os-release 2>/dev/null; then
+                echo "Warning: This install script is designed for Ubuntu/Debian. Some commands may fail."
+            fi
+        description: Checking OS compatibility...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v vim >/dev/null 2>&1 || sudo apt-get install -y vim
+        description: Installing vim...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v zsh >/dev/null 2>&1 || sudo apt-get install -y zsh
+        description: Installing zsh...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v direnv >/dev/null 2>&1 || sudo apt-get install -y direnv
+        description: Installing direnv...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v bison >/dev/null 2>&1 || sudo apt-get install -y bison
+        description: Installing bison (required for gvm)...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev curl git libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+        description: Installing pyenv build dependencies...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: '[ -d ~/.oh-my-zsh ] || sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
+        description: Installing oh-my-zsh...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: '[ -f ~/.oh-my-zsh/themes/igorsilva.zsh-theme ] || curl -fsSL https://raw.githubusercontent.com/igor9silva/zsh-theme/master/igorsilva.zsh-theme > ~/.oh-my-zsh/themes/igorsilva.zsh-theme'
+        description: Installing igorsilva zsh theme...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: '[ -d ~/.fzf ] || (git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install --all)'
+        description: Installing fzf...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: '[ -d ~/.gvm ] || zsh < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)'
+        description: Installing gvm...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: command -v fnm >/dev/null 2>&1 || curl -fsSL https://fnm.vercel.app/install | bash
+        description: Installing fnm...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: '[ -d ~/.pyenv ] || curl -fsSL https://pyenv.run | bash'
+        description: Installing pyenv...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: '[ -d ~/.pyenv/plugins/pyenv-virtualenv ] || git clone https://github.com/pyenv/pyenv-virtualenv.git ~/.pyenv/plugins/pyenv-virtualenv'
+        description: Installing pyenv-virtualenv...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
         command: command -v ghostty >/dev/null 2>&1 || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh)"
         description: Installing Ghostty...
         quiet: false
