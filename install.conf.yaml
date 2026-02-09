@@ -62,6 +62,9 @@
         path: .claude/thoughts
         create: true
         force: true
+    ~/.claude/statusline-command.sh:
+        path: .claude/statusline-command.sh
+        force: true
 
     # MCP configuration
     ~/.config/Code/User/mcp.json:
