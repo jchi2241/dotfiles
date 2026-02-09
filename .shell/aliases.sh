@@ -47,6 +47,7 @@ alias killchrome="killall chrome"
 alias killcontainers='docker rm -f $(docker container ls -aq)'
 alias killslack="kill -9 $(pidof slack)"
 alias cc="claude"
+alias ccd="claude --dangerously-skip-permissions"
 
 # Managing dotfiles
 alias vimrc="vim ~/.dotfiles/vimrc"
