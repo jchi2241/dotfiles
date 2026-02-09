@@ -54,7 +54,7 @@
     "editor.insertSpaces": true,
     "editor.tabSize": 4,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": false,
+    "editor.formatOnSave": true,
     "[javascript]": {
         "editor.formatOnSave": true,
     },
@@ -493,7 +493,7 @@
         "/tmp/postman-folder-post-response.instructions.md": true,
         "/tmp/postman-folder-pre-request.instructions.md": true,
         "/tmp/postman-http-request-post-response.instructions.md": true,
-        "/tmp/postman-http-request-pre-request.instructions.md": true
+        "/tmp/postman-http-request-pre-request.instructions.md": true,
     },
     "gitlens.ai.model": "vscode",
     "gitlens.ai.vscode.model": "copilot:gpt-4o-mini",
