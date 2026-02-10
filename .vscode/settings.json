@@ -55,6 +55,10 @@
     "editor.tabSize": 4,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "always",
+        "source.addMissingImports": "never",
+    },
     "[javascript]": {
         "editor.formatOnSave": true,
     },
@@ -97,9 +101,6 @@
     "go.useLanguageServer": true,
 
     "editor.renderWhitespace": "boundary",
-    "editor.codeActionsOnSave": {
-        "source.addMissingImports": "never",
-    },
     "editor.cursorSurroundingLines": 5,
     "editor.fontFamily": "Iosevka, Fira Code, Hack, 'Droid Sans Mono', 'monospace', monospace, 'Droid Sans Fallback'",
     "editor.fontWeight": "500",
@@ -497,4 +498,10 @@
     },
     "gitlens.ai.model": "vscode",
     "gitlens.ai.vscode.model": "copilot:gpt-4o-mini",
+    "eslint.validate": [
+        "javascript",
+        "javascriptreact",
+        "typescript",
+        "typescriptreact",
+    ],
 }

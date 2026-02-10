@@ -150,13 +150,23 @@ worktree-add() {
 
   local branch="$1"
   local base="${2:-HEAD}"
-  local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+  local main_repo
+  main_repo="$(git rev-parse --show-toplevel)"
+  local repo_name=$(basename "$main_repo")
   local dir_name="${branch//\//-}"  # replace slashes with dashes
   local worktree_path="../${repo_name}-${dir_name}"
 
   git worktree add "$worktree_path" -b "$branch" "$base" && \
     echo "Created worktree at $worktree_path" && \
-    cd "$worktree_path"
+    cd "$worktree_path" || return 1
+
+  # Symlink files that are generated locally and not tracked by git,
+  # so the worktree doesn't end up with stale copies.
+  if [ -f "$main_repo/test/kubeconfig.yml" ]; then
+    mkdir -p test
+    ln -sf "$main_repo/test/kubeconfig.yml" test/kubeconfig.yml
+    echo "Symlinked test/kubeconfig.yml from main repo"
+  fi
 }
 
 # Remove worktree and its branch
