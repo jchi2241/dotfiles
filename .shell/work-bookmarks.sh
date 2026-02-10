@@ -17,7 +17,6 @@ alias sbf="bf && make server"
 # Helios commands
 alias lhel="kcadm-login && kcadm update realms/memsql -s verifyEmail=false"
 alias rkct="./deploy/kube/util/reload-keycloak-img.sh && ./deploy/kube/util/reset-postgres.sh"
-alias nukehelios="hel && make docker-nuke && rm -rf singlestore.com/helios/bin && cd singlestore.com/helios && goclean && hel && make kube-init"
 alias login-ecr="cd ~/projects/aws-ci-runners && make login-registry && cd -"
 alias login-cc="cd ~ && aws sso login --profile=EngAIDevUser-651246146166 && cd -"
 alias nukedocker='
@@ -25,6 +24,7 @@ alias nukedocker='
   [ "$(docker ps -aq)" ] && docker rm $(docker ps -aq);
   [ "$(docker volume ls -q)" ] && docker volume rm $(docker volume ls -q)
 '
+alias nukehelios="hel && nukedocker && rm -rf singlestore.com/helios/bin && cd singlestore.com/helios && goclean"
 alias init-analyst="NOVA=1 SINGLESTORE_NEXUS=/home/jchi/projects/singlestore-nexus make kube-init && make start-nova-workspace && make setup-analyst && make frontend-start"
 
 # Test example commands

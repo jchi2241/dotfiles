@@ -51,7 +51,7 @@ Defined in `agentdomain.yaml`:
 - **Delete** - Delete current domain
 - **Control Access** - Invite/Remove users from current domain
 - **Use** - Use current domain
-- **View Agent Domain Feedback** - View feedback submitted by domain users
+- **Review Agent Domain Conversations** (renamed from View Agent Domain Feedback) - Review feedback and recorded turns for domain
 - **View Agent Domain User Conversations** - View other users' conversation threads
 
 ### AgentDomain Roles

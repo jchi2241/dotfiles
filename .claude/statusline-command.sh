@@ -14,7 +14,7 @@ branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 if [ -n "$branch" ]; then
     git_dir=$(git rev-parse --git-dir 2>/dev/null)
     if [ -n "$git_dir" ] && [[ "$git_dir" == *"/worktrees/"* ]]; then
-        branch="worktree:$branch"
+        branch="🌳$branch"
     fi
     status="$status $(printf '\033[01;32m(%s)\033[00m' "$branch")"
 fi
