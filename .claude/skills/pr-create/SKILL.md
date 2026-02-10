@@ -1,12 +1,12 @@
 ---
 name: pr-create
-description: Create pull requests with well-written summaries. Use when the user asks to create a PR, open a pull request, or push changes for review.
+description: Use when the user asks to create a PR, open a pull request, or push changes for review.
 allowed-tools: Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(git diff:*) Bash(gh pr:*) Bash(~/.claude/skills/pr-create/scripts/:*) Read
 ---
 
 # Create Pull Request
 
-Create a PR for the current branch. You have access to the full conversation history.
+Generate a well-structured PR from branch history and conversation context. Core principle: PR summaries explain purpose and impact, not line-by-line changes.
 
 **Do NOT make any code changes, commits, or edits. Your sole responsibility is to generate the PR summary and create the PR.**
 
@@ -25,14 +25,18 @@ Create a PR for the current branch. You have access to the full conversation his
    ```
 6. **Create PR** - Use `gh pr create` with the drafted content
 
-## PR Title Format (helios repo)
+## PR Title Format
+
+> The format below applies to the helios repository. For other repos, use a conventional short title.
 
 `[category:type] Description`
 
 - Categories: operator, autoscale, cellagent, frontend, backend, misc, backup, nova, hotfix
 - Types: feature, fix, improvement, chore, test, ci, localdev
 
-## PR Summary (helios repo)
+## PR Summary
+
+> The template below applies to the helios repository. For other repos, use a simple Summary + Test Plan format.
 
 ```
 ## Summary
@@ -64,3 +68,10 @@ Rules:
 - **Do NOT create commits**
 - **Do NOT amend commits**
 - Only generate the PR summary and create the PR
+
+## Common Mistakes
+
+- Fabricating test results instead of using `[TODO: ...]`
+- Making code changes or amending commits (this skill is summary-only)
+- Force pushing (use the safe-push script which rejects force pushes)
+- Describing line-by-line changes instead of purpose and impact

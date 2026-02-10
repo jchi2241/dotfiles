@@ -1,16 +1,16 @@
 ---
-description: Build research report documenting codebase patterns
-argument-hint: [topic or question]
+description: Build a codebase map documenting architecture and patterns
+argument-hint: [topic or area to map]
 model: opus
 ---
 
-# Research
+# Map Codebase
 
-Build a one-page research report and save it to `~/.claude/thoughts/research/` as markdown.
+Build a codebase map and save it to `~/.claude/thoughts/research/` as markdown.
 
 **Filename format:** `YYYY-MM-DD_<brief-one-liner-indicating-topic-of-research>.md`
 
-The research report should contain all necessary information for another agent to build an implementation plan.
+The map should contain all necessary information for subsequent workflow steps (spec, plan).
 
 ---
 
@@ -32,8 +32,8 @@ The research report should contain all necessary information for another agent t
 ## Output Format
 
 The research report filename and path will be used by subsequent workflow steps:
-- **create-plan** will reference this research doc
-- **implement-plan** agents may read this for context
+- **create-spec** will use this map for requirements context and architectural context
+- **create-plan** and **implement-plan** agents may read this for context
 
 Always include the full path in your response so the user can easily reference it in the next step.
 
@@ -51,8 +51,7 @@ project: <project name, e.g., helios, heliosai, singlestore-nexus>
 area: <codebase area, e.g., frontend/intelligence, cmd/nova-gateway>
 tags: [tag1, tag2, tag3]  # relevant keywords for searching
 date: YYYY-MM-DD
-status: complete
-related_plans: []  # paths to plans that reference this research
+status: draft | complete
 ---
 ```
 
@@ -78,21 +77,21 @@ After the frontmatter, include (as relevant to the topic):
 
 ---
 
-## After Completing Research
+## After Completing Map
 
-When you finish the research report, end your response with:
+When you finish the map, end your response with:
 
 ```
-## Research Complete
+## Map Complete
 
 Report saved to: `~/.claude/thoughts/research/YYYY-MM-DD_<topic>.md`
 
-**Next step:** To create an implementation plan based on this research:
-/create-plan [describe the feature/task], referencing ~/.claude/thoughts/research/YYYY-MM-DD_<topic>.md
+**Next step:** To define what to build and how, based on this map:
+/create-spec [describe what you want to build], referencing ~/.claude/thoughts/research/YYYY-MM-DD_<topic>.md
 ```
 
 ---
 
-## User's Research Question
+## User's Mapping Request
 
 $ARGUMENTS

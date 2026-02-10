@@ -1,12 +1,14 @@
 ---
 description: Create implementation plan with task breakdown
-argument-hint: [feature description] [research doc path]
+argument-hint: [feature description] [spec path]
 model: opus
 ---
 
 # Create Plan
 
 Create an implementation plan and save it to `~/.claude/thoughts/plans/` as markdown.
+
+Ensure the output directory exists: `mkdir -p ~/.claude/thoughts/plans/`
 
 **Filename format:** `YYYY-MM-DD_<brief-one-liner-indicating-topic>.md`
 
@@ -36,17 +38,19 @@ The UUID is automatically generated when the first task is created in a session.
 
 ### Step 1: Gather Context
 
-**CRITICAL:** If the user references a research document, you MUST read it first:
+**CRITICAL:** If the user references a spec document, you MUST read it first:
 ```
-Read ~/.claude/thoughts/research/YYYY-MM-DD_<topic>.md
+Read ~/.claude/thoughts/specs/YYYY-MM-DD_<topic>.md
 ```
 
-Then explore the codebase to understand:
-- Current state of the system
-- Existing patterns to follow
-- Constraints and dependencies
+The spec is the source of truth for WHAT to build and HOW. Your job is to sequence and decompose the spec into independently-executable tasks.
 
-Record the research doc path in the plan's References section.
+Also read any referenced documents from the spec's frontmatter:
+- `research_doc:` path — for codebase context
+
+**Do not re-evaluate the spec's technical decisions.** If the spec says "use approach X," plan for approach X. If you spot a conflict between the spec and the codebase's current state, flag it to the user — do not silently re-architect.
+
+Record all document paths in the plan's References section.
 
 ### Step 2: Present Outline for Approval
 
@@ -121,7 +125,9 @@ project: <project name, e.g., helios, heliosai, singlestore-nexus>
 area: <codebase area, e.g., frontend/intelligence, cmd/nova-gateway>
 tags: [tag1, tag2, tag3]  # relevant keywords for searching
 date: YYYY-MM-DD
-status: pending  # pending | in_progress | complete | blocked
+status: pending  # draft | pending | in_progress | complete | blocked
+spec: <path to spec, or null>
+approach_chosen: <name of the chosen approach from spec>
 research_doc: <path or null>
 task_list_id: <uuid, fill in after creating tasks>
 phases_total: <N>
@@ -138,12 +144,12 @@ tasks_complete: 0
 
 ## Current State Analysis
 
-[What exists now, what's missing, key constraints discovered]
+> See spec: `<spec path>` for full technical analysis and approach decision.
 
-### Key Discoveries:
-- [Important finding with file:line reference]
-- [Pattern to follow]
-- [Constraint to work within]
+### Key Constraints from Spec:
+- [Constraint from spec with reference]
+- [Pattern to follow from spec]
+- [Architectural limit to work within]
 
 ## Desired End State
 
@@ -159,7 +165,10 @@ tasks_complete: 0
 
 ## Implementation Approach
 
-[High-level strategy and reasoning]
+> Approach: [name of chosen approach from spec]
+> Full details: `<spec path>`, section "Architecture"
+
+[Brief summary of the sequencing strategy — how phases are ordered and why. This is the plan's unique contribution: not WHAT or HOW, but IN WHAT ORDER.]
 
 ---
 
@@ -261,7 +270,8 @@ tasks_complete: 0
 
 ## References
 
-- Research: `~/.claude/research/[relevant].md`
+- Spec: `<spec path>`
+- Map: `<research path>`
 - Similar implementation: `[file:line]`
 
 ---

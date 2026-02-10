@@ -1,16 +1,12 @@
 ---
 name: commit
-description: Create git commits with succinct messages. Use when the user asks to commit changes, save work, create a commit, or after completing code modifications that should be committed.
+description: Use when the user asks to commit changes, save work, create a commit, or after completing code modifications that should be committed.
 allowed-tools: Bash(git status:*) Bash(git diff:*) Bash(git add:*) Bash(git commit:*) Bash(git log:*)
 ---
 
 # Commit Changes
 
-You are tasked with creating git commits for the changes made during this session.
-
-## NEVER RUN
-
-**NEVER run `git push`** - this skill is for local commits only. If the user wants to push, they must do it themselves or use a different workflow.
+Create atomic, well-messaged git commits from session changes. Core principle: each commit should be a logical unit with a concise message written as if the user authored it.
 
 ## Arguments
 
@@ -22,12 +18,16 @@ User-provided instructions override defaults. Examples:
 
 When arguments are provided, adapt the process accordingly. User intent takes precedence.
 
-## Commit Message Rules
+## Quick Reference
 
-- **One line only, max 30 characters**
-- Imperative mood ("Add", "Fix", "Update", not "Added", "Fixed")
-- No periods at the end
-- Examples: `Fix login redirect`, `Add auth endpoint`
+| Rule | Example |
+|------|---------|
+| One line, max 30 chars | `Fix login redirect` |
+| Imperative mood | "Add", "Fix", "Update" (not "Added", "Fixed") |
+| No trailing period | `Add auth endpoint` |
+| No co-author/attribution | No "Co-Authored-By", no "Generated with Claude" |
+| Never `git push` | Local commits only |
+| Never `git add .` or `-A` | Stage specific files by name |
 
 ## Process
 
@@ -55,16 +55,14 @@ When arguments are provided, adapt the process accordingly. User intent takes pr
 ## Important
 
 - **NEVER run `git push`** - local commits only
-- **NEVER add co-author information or Claude attribution**
-- Commits should be authored solely by the user
-- Do not include any "Generated with Claude" messages
-- Do not add "Co-Authored-By" lines
-- Write commit messages as if the user wrote them
 - **NEVER amend existing commits** unless explicitly requested
+- No co-author information or Claude attribution of any kind
+- Write commit messages as if the user wrote them
 
-## Remember
+## Common Mistakes
 
-- You have the full context of what was done in this session
-- Group related changes together
-- Keep commits focused and atomic when possible
-- The user trusts your judgment - they asked you to commit
+- Using `git add .` or `-A` instead of staging specific files
+- Writing past tense ("Fixed bug") instead of imperative ("Fix bug")
+- Exceeding 30 characters in the commit message
+- Pushing to remote (this skill is local-only)
+- Adding "Co-Authored-By" or "Generated with Claude" lines
