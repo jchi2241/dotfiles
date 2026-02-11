@@ -171,9 +171,15 @@ For resume (Phase N > 1): verify current branch matches expected phase, checkout
 
 **Uses: `subagent-driven-development` skill** — see `~/.claude/skills/subagent-driven-development/SKILL.md` for the full per-task loop and prompt templates.
 
-**Preparation:** Read the plan file once (and the spec if referenced). Extract the full text of every task in the current phase (description, files to modify, implementation notes, success criteria). You will paste this text into subagent prompts — subagents should never need to read the plan file for task details.
+**Preparation:** Read the plan file once to understand phase structure, task ordering, and dependencies. Note the spec path from frontmatter. You do NOT need to extract full task text — subagents read the plan file themselves.
 
-**Orchestrator discipline:** Your role is dispatch and coordination. Do NOT explore the codebase, read source files, or run searches to "understand the code" before dispatching subagents. Each subagent gets a fresh context window and will explore the codebase itself. Pre-reading source files wastes your context window on work the subagent will redo anyway.
+**Orchestrator discipline:** Your role is thin dispatch and coordination. You provide pointers (plan path, task number, file paths from completed dependencies), not content. Do NOT:
+- Extract or paste task descriptions from the plan into subagent prompts
+- Read the spec to pull excerpts for subagents
+- Explore the codebase, read source files, or run searches
+- Pre-digest anything the subagent can read itself
+
+Each subagent gets a fresh context window. They read the plan, the spec, and the codebase directly. Your context window is reserved for coordination: tracking task status, handling responses, managing dependencies, and reporting to the user.
 
 **Batch size:** 3 tasks. After every 3 completed tasks within a phase, pause for a batch checkpoint (see Step 2f).
 
@@ -182,22 +188,23 @@ For each unblocked, pending task in the current phase:
 #### 2a. Dispatch Implementer
 
 1. **Mark task as in_progress** (Task APIs or JSON fallback)
-2. **Prepare inline context** — extract from the plan and spec only:
-   - Full task description, files to modify, implementation notes, success criteria
-   - Relevant spec excerpts (architectural approach, data models, constraints)
-   - Phase context (what phase, other tasks, dependencies)
-   - **Do NOT explore the codebase, read source files, or search for patterns.** The subagent has a fresh context window and will explore the codebase itself. The orchestrator's job is to pass along what the plan and spec say, not to pre-digest the codebase.
-3. **Launch implementer subagent** (model: **opus**, subagent_type: **general-purpose**) using the template in `~/.claude/skills/subagent-driven-development/implementer-prompt.md`. Paste all context inline.
-4. **Handle response:**
-   - If subagent asks questions → answer clearly, then re-dispatch with answers incorporated
-   - If `COMPLETED:` → proceed to spec review (step 2b)
+2. **Dispatch implementer subagent** (model: **opus**, subagent_type: **general-purpose**) using the template in `~/.claude/skills/subagent-driven-development/implementer-prompt.md`. Fill in the template placeholders:
+   - Plan file path and task number (subagent reads its own task section)
+   - Spec file path (from plan frontmatter)
+   - Working directory, branch, commit prefix `[PN/TM]`
+   - Environment notes (e.g., "TypeScript compiler not available, use --no-verify")
+   - **Completed dependencies:** For each completed blocking task, one line: task number, one-line summary (from its COMPLETED response), and key file paths it created/modified. This is the only "content" you provide — it tells the subagent where to verify interfaces.
+   - **Sibling tasks:** Brief list of other tasks in the phase and their status.
+3. **Handle response:**
+   - If subagent asks questions → answer from the plan/spec (read if needed), then re-dispatch with answers incorporated
+   - If `COMPLETED:` → **store the one-line summary and files changed** (you'll pass these to dependent tasks and reviewers) → proceed to spec review (step 2b)
    - If `FAILED:` → do NOT mark completed, report failure to user with details, stop and wait for user input
 
 #### 2b. Spec Compliance Review (skip in --yolo mode)
 
 1. **Dispatch spec reviewer** (model: **opus**, subagent_type: **general-purpose**) using the template in `~/.claude/skills/subagent-driven-development/spec-reviewer-prompt.md`. Provide:
-   - Full task requirements (pasted inline from plan)
-   - Implementer's report (summary, files changed, self-review findings)
+   - Plan file path and task number (reviewer reads the task section itself)
+   - Implementer's report (summary, files changed, deviations, self-review findings)
 2. **Handle response:**
    - `✅ SPEC COMPLIANT` → proceed to code quality review (step 2c)
    - `❌ SPEC ISSUES` → dispatch fix subagent (step 2e) with the specific issues → re-dispatch spec reviewer → repeat until compliant

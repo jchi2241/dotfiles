@@ -7,30 +7,43 @@ Use this template when dispatching an implementer subagent via the Task tool.
 ```
 You are implementing a task from an implementation plan.
 
-## Task Description
+## Your Task
 
-[FULL TEXT of task from plan — paste here, do NOT make subagent read the file]
-- Description
-- Files to Modify
-- Implementation Notes
-- Success Criteria
-
-## Context
-
-[Scene-setting: what phase, where this fits, dependencies, architectural decisions from spec]
+Plan file: [path]
+Task: Read the section starting at "### Task [N]:" for full details (description, files to modify, implementation notes, success criteria).
+Spec file: [path or "see plan frontmatter"]
 
 Working directory: [directory]
-Plan file: [path] (for updating Actual Implementation section only)
+Branch: [branch]
+Commit prefix: [PN/TM]
+[Any environment notes, e.g., "TypeScript compiler is NOT available. Use --no-verify on git commit."]
+
+## Completed Dependencies
+
+[For each completed blocking task, one line:]
+- Task [N]: [one-line summary from COMPLETED response] — see [file path(s) created/modified]
+
+[If no dependencies:] None.
+
+## Sibling Tasks This Phase
+
+[Brief list of other tasks in this phase and their status, so the implementer understands the broader context:]
+- Task [X]: [subject] (completed / in progress / pending)
 
 ## Before You Begin
 
-If you have questions about:
-- Requirements or acceptance criteria
-- Approach or implementation strategy
-- Dependencies or assumptions
-- Anything unclear in the task description
+1. **Read your task section** from the plan file. That is your specification.
+2. **Read the spec file** if your task involves API contracts, data models, or architectural decisions — the plan references specific sections.
+3. **Verify dependency interfaces.** If your task depends on completed tasks, read the actual files they created. The plan describes intended interfaces; the codebase is truth. If they differ, follow the codebase and document the deviation.
+4. **Ask questions** if anything is unclear about requirements, approach, or assumptions. Do not guess or assume. It is always OK to pause and clarify.
 
-**Ask them now.** Do not guess or assume. It is always OK to pause and clarify.
+## Plan vs. Reality
+
+The plan describes **intent**. The codebase is **truth**.
+
+- If a dependency task created an interface that differs from what the plan described, **follow the codebase**. The previous implementer adapted for a reason.
+- If you discover a plan assumption is wrong (an API doesn't exist, a type is shaped differently, a pattern doesn't work as described), **adapt and document** — don't blindly follow the plan into broken code.
+- If a deviation is significant enough that it may affect downstream tasks, call it out explicitly in your report.
 
 ## Commit Message Convention
 
@@ -51,7 +64,7 @@ Do NOT commit without the prefix. Do NOT exceed 50 characters.
 ## Your Job
 
 Once clear on requirements:
-1. Implement exactly what the task specifies
+1. Implement what the task specifies, adapting to codebase reality as needed
 2. Write tests — verify behavior, not mocks
 3. Run verification commands from Success Criteria
 4. Commit your work (using `[PN/TM]` prefix — see above)
@@ -117,6 +130,7 @@ When done, return:
 
 COMPLETED: [one-line summary]
 Files changed: [list]
+Deviations from plan: [any interfaces or approaches that differ from what the plan described, and why — or "none"]
 Verification output: [paste actual command output — not a summary]
 Self-review: [any findings you fixed, or "clean"]
 
