@@ -149,7 +149,6 @@ tags: [tag1, tag2, tag3]
 date: YYYY-MM-DD
 status: draft | complete
 research_doc: <path to map, or null>
-approach_chosen: <name of the chosen approach>
 ---
 ```
 

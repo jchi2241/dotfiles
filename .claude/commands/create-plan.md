@@ -127,7 +127,6 @@ tags: [tag1, tag2, tag3]  # relevant keywords for searching
 date: YYYY-MM-DD
 status: pending  # draft | pending | in_progress | complete | blocked
 spec: <path to spec, or null>
-approach_chosen: <name of the chosen approach from spec>
 research_doc: <path or null>
 task_list_id: <uuid, fill in after creating tasks>
 phases_total: <N>
@@ -383,15 +382,17 @@ End your response with:
 **Plan file:** `~/.claude/thoughts/plans/YYYY-MM-DD_<topic>.md`
 **Task list:** `~/.claude/tasks/<uuid>/`
 
-**Next step:** To implement the tasks from this plan, start a new session with:
+**Next step — start implementation (choose one):**
 
+# Option 1: New session with Task API support
 CLAUDE_CODE_TASK_LIST_ID=<uuid> claude
+/implement-plan ~/.claude/thoughts/plans/YYYY-MM-DD_<topic>.md
 
-Then run:
+# Option 2: Quick start (uses JSON fallback for task tracking)
 /implement-plan ~/.claude/thoughts/plans/YYYY-MM-DD_<topic>.md
 ```
 
-This ensures the Task APIs (TaskList, TaskUpdate) can access the tasks created in this session.
+After each phase completes, the session ends. Use `/continue-plan` in a fresh session to resume.
 
 ---
 

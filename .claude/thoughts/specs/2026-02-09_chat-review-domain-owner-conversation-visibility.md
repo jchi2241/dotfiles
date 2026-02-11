@@ -155,7 +155,7 @@ The persist approach trades a trivial write (~200 bytes, best-effort goroutine) 
 
 - **No dedup problem:** Both entry types share the same deterministic ID (`SHA256(checkpoint_id:session_id)`). A recorded turn that later gets feedback is a single UPSERT — the row is promoted. Separate tables produce two rows requiring JOIN-based dedup in every query.
 - **Native pagination:** Single table cursor query uses the existing SORT KEY directly. UNION ALL over two tables requires materializing both result sets before sorting.
-- **Low migration risk:** Both ALTERs (`ADD COLUMN` with DEFAULT, `MODIFY COLUMN` to nullable) are metadata-only on SingleStore. No data rewrite.
+- **Low migration risk:** The ALTER (`ADD COLUMN` with DEFAULT) is metadata-only on SingleStore. No data rewrite. Rating stays NOT NULL — recorded turns use `rating = 0` as the unrated sentinel, avoiding the complexity of making a NOT NULL column nullable in SingleStore.
 
 ### Decision 3: Pagination strategy
 
@@ -189,7 +189,7 @@ Checkpoint transaction commits
       -> Check domain config cache for recording.enabled        (~0ms, cache hit)
       -> SELECT domain_id FROM sessions WHERE id = thread_id    (~1ms, on cache miss)
       -> Decode msgpack blob, extract question_preview           (~1-5ms)
-      -> INSERT INTO feedback (type='recorded_turn', rating=NULL) (~1-2ms)
+      -> INSERT INTO feedback (type='recorded_turn', rating=0)     (~1-2ms)
 ```
 
 When recording is disabled, the goroutine short-circuits after the cache check. Near-zero overhead.
@@ -218,7 +218,7 @@ type cachedConfig struct {
 
 The existing `SubmitFeedback` handler must always set `type = 'feedback'` in its UPSERT:
 
-- **Recording ON, user submits feedback:** Recorded turn row exists (`type = 'recorded_turn'`, `rating = NULL`). `SubmitFeedback` UPSERTs with the same deterministic ID, sets `type = 'feedback'`, `rating`, `reason_code`, `comment`. Row is promoted.
+- **Recording ON, user submits feedback:** Recorded turn row exists (`type = 'recorded_turn'`, `rating = 0`). `SubmitFeedback` UPSERTs with the same deterministic ID, sets `type = 'feedback'`, `rating` (1 or -1), `reason_code`, `comment`. Row is promoted.
 - **Recording OFF, user submits feedback:** No recorded turn row. `SubmitFeedback` INSERTs with `type = 'feedback'`. Existing behavior, unchanged except for explicit `type` field.
 
 `SubmitFeedback` doesn't need to know whether recording is on — the UPSERT handles both paths.
@@ -229,6 +229,7 @@ The existing `SubmitFeedback` handler must always set `type = 'feedback'` in its
 
 ```sql
 -- v11/alter_ddl.sql
+-- rating remains NOT NULL; recorded turns use rating = 0 as the unrated sentinel.
 
 -- Add type column (metadata-only on SingleStore)
 DELIMITER //
@@ -242,25 +243,22 @@ EXCEPTION
 END //
 DELIMITER ;
 
--- Make rating nullable (recorded turns have rating = NULL)
+-- Composite index for chat-review list query
 DELIMITER //
 DO BEGIN
-    ALTER TABLE feedback MODIFY COLUMN rating TINYINT NULL;
+    CREATE INDEX idx_feedback_domain_type_created
+        ON feedback (domain_id, type, created_at DESC);
 EXCEPTION
-    WHEN ER_DUP_FIELDNAME THEN
+    WHEN ER_DUP_KEYNAME THEN
     BEGIN ROLLBACK; END;
     WHEN OTHERS THEN
     BEGIN ROLLBACK; RAISE; END;
 END //
 DELIMITER ;
-
--- Composite index for chat-review list query
-CREATE INDEX IF NOT EXISTS idx_feedback_domain_type_created
-    ON feedback (domain_id, type, created_at DESC);
 ```
 
 - `type` defaults to `'feedback'` — existing rows are automatically classified without a data migration.
-- `rating` becomes nullable — recorded turns have `rating = NULL`.
+- `rating` stays NOT NULL. Recorded turns use `rating = 0` as the unrated sentinel (making a NOT NULL column nullable in SingleStore is prohibitively expensive).
 
 ### Recording config in domain JSON (no DDL change)
 
@@ -318,7 +316,7 @@ type ChatReviewEntry = {
     checkpoint_id: string;
     user_id: string;
     question_preview: string;
-    rating: number | null;
+    rating: number;           // 1 = good, -1 = bad, 0 = unrated
     reason_code: string | null;
     comment: string | null;
     created_at: string;
@@ -385,7 +383,7 @@ GET .../domains/{domainID}/chat-review
 | `limit` | int | 50 | Page size (max 200). |
 | `type` | string | *(both)* | `feedback`, `recorded_turn`, or omit for both. |
 | `user_id` | string (CSV) | — | Filter by user(s). OR logic. |
-| `rating` | int | — | `1` (good), `-1` (bad), `0` (unrated = `IS NULL` sentinel). Omit for all. |
+| `rating` | int | — | `1` (good), `-1` (bad), `0` (unrated). Omit for all. |
 | `reason_code` | string (CSV) | — | Filter by reason code(s). `none` = `IS NULL` sentinel. OR logic. |
 | `start_date` | RFC3339 | — | Lower bound on timestamp. |
 | `end_date` | RFC3339 | — | Upper bound on timestamp. |
@@ -417,7 +415,7 @@ GET .../domains/{domainID}/chat-review
         "checkpoint_id": "string",
         "user_id": "uuid",
         "question_preview": "Show me all orders from...",
-        "rating": null,
+        "rating": 0,
         "reason_code": null,
         "comment": null,
         "created_at": "2026-02-09T..."
@@ -437,8 +435,7 @@ SELECT * FROM feedback
 WHERE domain_id = ? AND (created_at, id) < (?, ?)
   [AND type IN (...)]
   [AND user_id IN (?, ?, ...)]
-  [AND rating = ?]               -- rating = 1 or -1
-  [AND rating IS NULL]           -- rating = 0 (unrated sentinel)
+  [AND rating = ?]               -- rating = 1, -1, or 0 (unrated)
   [AND (reason_code IN (?, ...) OR reason_code IS NULL)]  -- includes 'none'
   [AND reason_code IN (?, ...)]  -- without 'none'
   [AND created_at >= ?]
@@ -447,7 +444,7 @@ ORDER BY created_at DESC, id DESC
 LIMIT :limit + 1
 ```
 
-Multi-value filter parsing: `strings.Split(r.URL.Query().Get("reason_code"), ",")`. Use squirrel's `sq.Or{sq.Eq{"reason_code": nil}, sq.Eq{"reason_code": values}}` for `none` + other values.
+Multi-value filter parsing: `strings.Split(r.URL.Query().Get("reason_code"), ",")`. Use squirrel's `sq.Or{sq.Eq{"reason_code": nil}, sq.Eq{"reason_code": values}}` for `none` + other values. Rating filter is a simple equality: `sq.Eq{"rating": value}` for any of 0, 1, -1.
 
 #### Chat Review Thread Drill-Down
 
@@ -518,7 +515,7 @@ No new permissions needed. Files to update for the rename:
 
 ## 13. Migration Strategy
 
-1. **Deploy auracontextstore v11 migration** — Adds `type` column with default `'feedback'`, makes `rating` nullable, creates composite index. All metadata-only operations on SingleStore. No data rewrite. Existing rows automatically get `type = 'feedback'`.
+1. **Deploy auracontextstore v11 migration** — Adds `type` column with default `'feedback'`, creates composite index. Metadata-only operation on SingleStore. No data rewrite. Existing rows automatically get `type = 'feedback'`. Rating stays NOT NULL; recorded turns use `rating = 0`.
 2. **Deploy auracontext service** — New chat-review handlers, recording capture in checkpoint path, `WHERE type = 'feedback'` on existing `ListFeedback`, `type = 'feedback'` on existing `SubmitFeedback` UPSERT.
 3. **Deploy nova-gateway** — New proxy routes for `/chat-review` and `/chat-review/{entryID}/thread`. RBAC permission rename.
 4. **Deploy frontend** — Tab rename, Chat Review tab, Settings tab with recording toggle.
@@ -576,7 +573,7 @@ Order matters: schema first, then backend, then gateway, then frontend. The sche
 
 | File | Change |
 |------|--------|
-| `v11/alter_ddl.sql` | **New migration.** ADD `type` column, MODIFY `rating` nullable, CREATE composite index. |
+| `v11/alter_ddl.sql` | **New migration.** ADD `type` column, CREATE composite index. Rating stays NOT NULL (0 = unrated). |
 
 ### Frontend
 

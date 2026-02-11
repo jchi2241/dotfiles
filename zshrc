@@ -67,3 +67,6 @@ export PATH="/home/jchi/.local/bin:$PATH"
 
 
 if [ -e /home/jchi/.nix-profile/etc/profile.d/nix.sh ]; then . /home/jchi/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer
+
+# Generated for envman. Do not edit.
+[ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"

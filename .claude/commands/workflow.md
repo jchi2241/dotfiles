@@ -15,11 +15,14 @@ The full workflow pipeline:
 
 ```
 /map-codebase → /create-spec → /create-plan → /implement-plan → /commit → /pr-create
-                                                    ↕ (per phase)
-                                            /review-implementation
+                                                    ↕ (per phase)        ↑
+                                            /review-implementation   /continue-plan
+                                                                   (fresh session)
 ```
 
-**Standalone tools** (usable anytime): `/review-implementation`, `/commit`, `/handoff`, `/worktree`, `/review-plan`
+**Phase lifecycle:** `/implement-plan` executes one phase per session, then stops. `/continue-plan` resumes in a fresh session with a cross-phase integration check. Repeat until all phases are done.
+
+**Standalone tools** (usable anytime): `/review-implementation`, `/commit`, `/handoff`, `/worktree`, `/review-plan`, `/continue-plan`
 
 ---
 
