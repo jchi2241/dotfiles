@@ -39,6 +39,7 @@ Before implementing, verify:
    - Phase structure and task breakdown
 3. **Task List path** is recorded in the plan header
 4. **Tasks exist** — check the task list directory has JSON files
+5. **Derive plan slug** — from plan filename: strip date prefix and `.md` suffix (e.g., `2026-02-09_add-auth.md` → `add-auth`). This slug is used for worktree and branch naming.
 
 If any required artifact is missing, inform the user and stop.
 
@@ -87,6 +88,32 @@ Phase [N] has [X] pending tasks. Proceed?
 ```
 
 **Wait for user confirmation before proceeding.**
+
+### Step 1b: Branch Setup
+
+**Uses: `stacked-branches` skill** — see `~/.claude/skills/stacked-branches/SKILL.md` for conventions.
+
+**Detect environment:**
+
+```bash
+# Check if already in a worktree
+git rev-parse --show-toplevel
+git rev-parse --git-common-dir
+# If these differ, we're in a worktree — use it as-is
+```
+
+**If already in a worktree:** Use it. Proceed to branch creation below.
+
+**If NOT in a worktree:** Ask the user:
+- **Worktree isolation** — user creates worktree externally (e.g., `wta`), then re-runs
+- **Branch-only** — create branches in the current repo directly
+
+**Branch creation (all flows):**
+
+For Phase 1: `git checkout -b "chi/${SLUG}-phase-1"`
+For resume (Phase N > 1): verify current branch matches expected phase, checkout if needed.
+
+**Pass to all subagents:** working directory and current phase/task numbers for commit prefixes.
 
 ### Step 2: Execute Tasks in Current Phase
 
@@ -167,6 +194,14 @@ Phase [N] tasks complete. Automated verification: [PASS/FAIL with details]
 ```
 
 **If verification fails:** Stop and report. Do not proceed to review or next phase.
+
+**If verification passes and this is NOT the last phase**, create the next phase branch (stacked on current tip):
+
+```bash
+git checkout -b "chi/${SLUG}-phase-$((N+1))"
+```
+
+This ensures the new branch starts from all of phase N's work. See `stacked-branches` skill for conventions.
 
 #### In --yolo mode:
 Skip review and commit gate. Proceed directly to next phase (or plan completion).

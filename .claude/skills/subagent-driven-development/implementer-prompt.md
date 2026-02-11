@@ -32,13 +32,29 @@ If you have questions about:
 
 **Ask them now.** Do not guess or assume. It is always OK to pause and clarify.
 
+## Commit Message Convention
+
+Every commit MUST use this format (max 50 chars total):
+
+```
+[PN/TM] Brief imperative description
+```
+
+Where `PN` = phase number, `TM` = task number from the plan.
+
+Examples:
+- `[P1/T2] Add user email validation`
+- `[P2/T4] Add auth middleware`
+
+Do NOT commit without the prefix. Do NOT exceed 50 characters.
+
 ## Your Job
 
 Once clear on requirements:
 1. Implement exactly what the task specifies
 2. Write tests — verify behavior, not mocks
 3. Run verification commands from Success Criteria
-4. Commit your work
+4. Commit your work (using `[PN/TM]` prefix — see above)
 5. Self-review (see below)
 6. Update the plan file's "Actual Implementation" section for this task
 7. Report back

@@ -22,7 +22,8 @@ When arguments are provided, adapt the process accordingly. User intent takes pr
 
 | Rule | Example |
 |------|---------|
-| One line, max 30 chars | `Fix login redirect` |
+| One line, max 50 chars | `Fix login redirect` |
+| With plan prefix: `[PN/TM]` | `[P1/T2] Add auth endpoint` |
 | Imperative mood | "Add", "Fix", "Update" (not "Added", "Fixed") |
 | No trailing period | `Add auth endpoint` |
 | No co-author/attribution | No "Co-Authored-By", no "Generated with Claude" |

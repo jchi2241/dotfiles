@@ -494,7 +494,7 @@
         "/tmp/postman-folder-post-response.instructions.md": true,
         "/tmp/postman-folder-pre-request.instructions.md": true,
         "/tmp/postman-http-request-post-response.instructions.md": true,
-        "/tmp/postman-http-request-pre-request.instructions.md": true,
+        "/tmp/postman-http-request-pre-request.instructions.md": true
     },
     "gitlens.ai.model": "vscode",
     "gitlens.ai.vscode.model": "copilot:gpt-4o-mini",

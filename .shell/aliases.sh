@@ -167,6 +167,11 @@ worktree-add() {
     ln -sf "$main_repo/test/kubeconfig.yml" test/kubeconfig.yml
     echo "Symlinked test/kubeconfig.yml from main repo"
   fi
+
+  if [ -f "$main_repo/.envrc.private" ]; then
+    ln -sf "$main_repo/.envrc.private" .envrc.private
+    echo "Symlinked .envrc.private from main repo"
+  fi
 }
 
 # Remove worktree and its branch

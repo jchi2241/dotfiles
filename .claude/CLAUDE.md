@@ -1,2 +1,3 @@
 - never force push without explicitly asking for permissions. this is incredibly dangerous
 - when i ask you to fix my claude settings, commands, skills, ...look in ~/.claude, not in .claude
+- jchi uses Linux (Ubuntu 24.04 LTS Noble) as their laptop OS. Tailor installation instructions and system-specific answers to Linux accordingly.

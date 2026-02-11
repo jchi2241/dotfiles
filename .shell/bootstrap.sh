@@ -18,3 +18,6 @@ export PATH=$PATH:/usr/local/bin/nvim
 
 # add local bin to path
 export PATH="$HOME/.local/bin:$PATH"
+
+# snap
+export PATH="$PATH:/snap/bin"
