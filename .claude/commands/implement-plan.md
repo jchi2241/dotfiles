@@ -171,7 +171,9 @@ For resume (Phase N > 1): verify current branch matches expected phase, checkout
 
 **Uses: `subagent-driven-development` skill** — see `~/.claude/skills/subagent-driven-development/SKILL.md` for the full per-task loop and prompt templates.
 
-**Preparation:** Read the plan file once. Extract the full text of every task in the current phase (description, files to modify, implementation notes, success criteria). You will paste this text into subagent prompts — subagents should never read the plan file for task details.
+**Preparation:** Read the plan file once (and the spec if referenced). Extract the full text of every task in the current phase (description, files to modify, implementation notes, success criteria). You will paste this text into subagent prompts — subagents should never need to read the plan file for task details.
+
+**Orchestrator discipline:** Your role is dispatch and coordination. Do NOT explore the codebase, read source files, or run searches to "understand the code" before dispatching subagents. Each subagent gets a fresh context window and will explore the codebase itself. Pre-reading source files wastes your context window on work the subagent will redo anyway.
 
 **Batch size:** 3 tasks. After every 3 completed tasks within a phase, pause for a batch checkpoint (see Step 2f).
 
@@ -180,10 +182,11 @@ For each unblocked, pending task in the current phase:
 #### 2a. Dispatch Implementer
 
 1. **Mark task as in_progress** (Task APIs or JSON fallback)
-2. **Prepare inline context** — extract from the plan:
+2. **Prepare inline context** — extract from the plan and spec only:
    - Full task description, files to modify, implementation notes, success criteria
    - Relevant spec excerpts (architectural approach, data models, constraints)
    - Phase context (what phase, other tasks, dependencies)
+   - **Do NOT explore the codebase, read source files, or search for patterns.** The subagent has a fresh context window and will explore the codebase itself. The orchestrator's job is to pass along what the plan and spec say, not to pre-digest the codebase.
 3. **Launch implementer subagent** (model: **opus**, subagent_type: **general-purpose**) using the template in `~/.claude/skills/subagent-driven-development/implementer-prompt.md`. Paste all context inline.
 4. **Handle response:**
    - If subagent asks questions → answer clearly, then re-dispatch with answers incorporated
