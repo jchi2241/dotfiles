@@ -43,7 +43,7 @@ The UUID is automatically generated when the first task is created in a session.
 Read ~/.claude/thoughts/specs/YYYY-MM-DD_<topic>.md
 ```
 
-The spec is the source of truth for WHAT to build and HOW. Your job is to sequence and decompose the spec into independently-executable tasks.
+The spec is the source of truth for WHAT to build and HOW. Your job is to sequence and decompose the spec into independently-executable tasks, grouped into phases that each produce a reviewable, deployable PR.
 
 Also read any referenced documents from the spec's frontmatter:
 - `research_doc:` path — for codebase context
@@ -51,6 +51,20 @@ Also read any referenced documents from the spec's frontmatter:
 **Do not re-evaluate the spec's technical decisions.** If the spec says "use approach X," plan for approach X. If you spot a conflict between the spec and the codebase's current state, flag it to the user — do not silently re-architect.
 
 Record all document paths in the plan's References section.
+
+### Phase Design Principles
+
+Each phase becomes one branch and one PR. Design phases accordingly:
+
+- **Independently reviewable:** A teammate should be able to review the phase's PR without needing context from future phases. The diff should tell a coherent story.
+- **Independently deployable:** The codebase must be in a working, shippable state after each phase merges. No phase should leave behind scaffolding that only becomes functional in a later phase.
+- **Right-sized for review:** Aim for 3-6 tasks per phase. A phase with 8+ tasks likely needs splitting. A phase with 1 task is probably too granular to justify its own PR — exception: database migrations are fine as a standalone phase since they often need to be deployed and verified independently.
+- **Logically cohesive:** Each phase should accomplish a distinct, describable goal — not just "part 1 of the work." If you can't summarize what the phase delivers in one sentence, it needs restructuring.
+
+**Anti-patterns to avoid:**
+- Phase 1 scaffolds empty files, Phase 2 fills them in (Phase 1 isn't useful on its own)
+- Phase 1 adds backend, Phase 2 adds frontend for the same feature (neither is reviewable in isolation — combine them or split by vertical slice)
+- A phase that breaks existing tests or functionality with the intent of fixing it in the next phase
 
 ### Step 2: Present Outline for Approval
 
@@ -215,10 +229,12 @@ tasks_complete: 0
 
 ## Phases
 
+> Each phase = one branch = one PR. Every phase must leave the codebase in a working, deployable state and be reviewable on its own.
+
 ### Phase 1: [Descriptive Name]
 
 #### Overview
-[What this phase accomplishes]
+[What this phase accomplishes — one sentence describing the deliverable]
 
 #### Tasks in This Phase
 - Task 1: [Task name]

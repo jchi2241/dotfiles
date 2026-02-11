@@ -583,7 +583,30 @@ Files to check (may be more than the three listed):
 - [ ] Existing tests pass (update test assertions if they reference the old name)
 
 #### Actual Implementation
-> _To be filled in by the implementing agent upon completion_
+
+Renamed `AgentDomainViewFeedback` -> `AgentDomainReviewConversations` across 15 files:
+
+**Source files (6):**
+- `singlestore.com/helios/graph/gql/enum.gql` -- enum value renamed
+- `singlestore.com/helios/authz/model/yaml/agentdomain.yaml` -- permission name + desc updated
+- `singlestore.com/helios/authz/permissions.go` -- `PermViewAgentDomainFeedback` -> `PermReviewAgentDomainConversations`
+- `singlestore.com/helios/graph/authz.go` -- GraphQL-to-permission mapping updated
+- `singlestore.com/helios/cmd/nova-gateway/auracontext/handlers/feedbackhandler.go` -- RBAC check + log message updated
+- `singlestore.com/helios/cmd/nova-gateway/auracontext/handlers/feedbackhandler_test.go` -- all references + test names + assertion messages updated
+
+**Generated files (9):**
+- `singlestore.com/helios/graph/models_gen.go` -- constant + string literal + IsValid switch
+- `singlestore.com/helios/graph/novaprivate/exec_gen.go` -- embedded GQL schema
+- `singlestore.com/helios/graph/novaprivatemodels/models_gen.go` -- constant + string literal + IsValid switch
+- `singlestore.com/helios/graph/novapublic/exec_gen.go` -- embedded GQL schema
+- `singlestore.com/helios/graph/novapublicmodels/models_gen.go` -- constant + string literal + IsValid switch
+- `singlestore.com/helios/graph/server/public/exec_gen.go` -- embedded GQL schema
+- `frontend/src/__generated__/global-types.ts` -- TypeScript enum
+- `frontend/src/__generated__/admin/global-types.ts` -- TypeScript enum
+- `frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/feedback-tab/feedback-tab.tsx` -- permission usage
+
+Commit: `[P5/T8] Rename RBAC perm to ReviewConversations` (94adc7953f9)
+Verification: grep for old names returns zero results across entire repo.
 
 ---
 
