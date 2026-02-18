@@ -24,10 +24,9 @@ fi
 
 # gvm
 [[ -s "/home/jchi/.gvm/scripts/gvm" ]] && source "/home/jchi/.gvm/scripts/gvm"
-# Load GVM helper functions (fixes "command not found" errors)
-[[ -s "$GVM_ROOT/scripts/functions" ]] && source "$GVM_ROOT/scripts/functions"
-[[ -s "$GVM_ROOT/scripts/function/_bash_pseudo_hash" ]] && source "$GVM_ROOT/scripts/function/_bash_pseudo_hash"
-[[ -s "$GVM_ROOT/scripts/function/_shell_compat" ]] && source "$GVM_ROOT/scripts/function/_shell_compat"
+# Remove GVM's cd override - it depends on __gvm_* helper functions that
+# Claude Code's shell snapshots filter out, causing errors on every cd
+unfunction cd 2>/dev/null
 
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

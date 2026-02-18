@@ -881,7 +881,7 @@ Build the Chat Review tab component that replaces the existing Feedback tab. Inc
 #### Files to Modify
 - `helios/frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/configure-domains-flyout.tsx` — Replace `"feedback"` tab with `"chat-review"` tab. Wire up the new component.
 - `helios/frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/chat-review-tab/chat-review-tab.tsx` — **New file.** Main Chat Review tab: filter state management, data fetching, layout.
-- `helios/frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/chat-review-tab/chat-review-table.tsx` — **New file.** Table rendering: type badge, question preview (~150 chars), user, rating, timestamp columns.
+- `helios/frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/chat-review-tab/chat-review-table.tsx` — **New file.** Table rendering: question (clickable), rating, reason, comment, created by, created at columns. Matches feedback tab.
 
 #### Implementation Notes
 
@@ -893,14 +893,15 @@ Build the Chat Review tab component that replaces the existing Feedback tab. Inc
 
 Filters are AND across dimensions, OR within multi-select values (spec F9).
 
-**Table columns** (spec F7):
+**Table columns** (spec F7 — matches feedback tab):
 | Column | Content |
 |--------|---------|
-| Type | Icon/badge: feedback (chat bubble) or recorded_turn (record icon) |
-| Question Preview | ~150 chars of the user's question |
-| User | User display name or ID |
-| Rating | Thumbs up/down icon or "—" for unrated |
-| Timestamp | Relative or absolute date |
+| Question | Clickable link, opens thread flyout. Ellipsis on overflow. |
+| Rating | RatingBadge (thumbs up/down or "—" for unrated) |
+| Reason | Resolved reason code display name, or em-dash if none |
+| Comment | User comment text, or em-dash if none |
+| Created By | UserPopover (avatar + name), or em-dash if no user_id |
+| Created At | Formatted date/time |
 
 **Pagination:**
 - Page size selector: 10 / 20 / 30 / 40 / 50 (default 50)
@@ -930,30 +931,22 @@ Filters are AND across dimensions, OR within multi-select values (spec F9).
 
 #### Actual Implementation
 
-**Commit:** `627fedea3c6` -- `[P7/T12] Add Chat Review tab with filters and paginated table`
+Completed 2026-02-11. Reworked `chat-review-table.tsx` to add all missing features:
 
-**Files created:**
+**File modified:** `frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/chat-review-tab/chat-review-table.tsx`
 
-1. **`frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/chat-review-tab/chat-review-tab.tsx`** (60 lines) -- Main Chat Review tab component following `FeedbackTab` pattern exactly. Props: `selectedDomainID`, `selectedDomainGrantedActions`, `selectedDomain` (new), `onCloseAll`. RBAC check via `useAgentDomainActionsGranted` with `AgentDomainReviewConversations`. Three render paths: no domain selected, no permission, or main content with description paragraph and `<ChatReviewTable>`.
+- **Reason code multi-select filter:** Uses `FeedbackFilterSelect` with items from `useGetReasonCodes()`. Includes a "None" option mapping to the `"none"` sentinel (backend maps to IS NULL). Selected values passed as `reason_code` filter param.
+- **User multi-select filter:** Uses `FeedbackFilterSelect` with items from `useEntities(orgID)` (org members with id/name). Selected values passed as `user_id` filter param.
+- **Date range filter:** Single-select dropdown (`Select` component) with presets: Last 7 days, Last 30 days, Last 90 days, All time. Computes `start_date`/`end_date` ISO strings from preset days. Default: "All time" (no date filter).
+- **Page size selector:** `Select` component with options 10/20/30/40/50 (default 50). Displayed in pagination bar as "Items per page: [N]".
+- **Page size change resets to page 1:** All filter state changes (including page size) trigger `resetPagination()` via a single `useEffect`.
+- **Empty states (all 4 from spec §14):** (1) Recording OFF + no data: "No feedback yet. Enable recording in the Settings tab..." (2) Recording OFF + historical data: table renders normally (implicit). (3) Recording ON + no entries: "Recording is enabled. Entries will appear here..." (4) Filters + no matches: "No entries match the current filters." with "Clear filters" button.
+- **Clear filters button:** Resets all four filter dimensions (rating, reason code, user, date range) to defaults.
+- **Pagination bar redesigned:** Split into left side (items per page selector) and right side (page indicator + prev/next buttons). Visible when entries exist or when navigated beyond page 1.
 
-2. **`frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/chat-review-tab/chat-review-table.tsx`** (230 lines) -- Table component following `FeedbackList` pattern but with cursor-based pagination instead of `useSortedTable`. Key differences from FeedbackList:
-   - `TypeBadge` inline component: `"feedback"` -> `<Badge variant="neutral">Feedback</Badge>`, `"recorded_turn"` -> `<Badge variant="info">Recorded</Badge>`
-   - Rating filter includes "Unrated" option (maps to `rating=0`)
-   - `selectedRatings` defaults to empty array (show all) instead of `["good", "bad"]`
-   - Rating filter mapping: `good` -> 1, `bad` -> -1, `unrated` -> 0; only applied when exactly one rating selected
-   - No `useSortedTable` -- backend handles sorting via cursor pagination, entries passed directly to `GeneralTable` rows
-   - Cursor-based pagination via `useListChatReview` hook: `goNext(lastEntryId)`, `goPrev()`, `resetPagination()`
-   - Pagination UI: Page indicator, Previous/Next buttons with disabled states
-   - `React.useEffect` resets pagination when `selectedRatings` changes
-   - Five columns: Type, Question (clickable link), Created By (UserPopover), Rating (RatingBadge), Created At
-   - Reuses `FeedbackFilterSelect` from feedback-tab, `RatingBadge` from feedback-list
-   - Row click opens `ChatReviewThreadFlyout` (from Task 13)
-   - Empty state distinguishes filtered vs unfiltered
-   - Error state via `GeneralError`
+New imports: `Select`/`SelectContent`/`SelectItem`/`SelectTrigger` from fusion, `useEntities` from role-management, `useCurrentOrgID` from hooks.
 
-**Files modified:**
-
-3. **`frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/configure-domains-flyout.tsx`** -- Replaced `FeedbackTab` import with `ChatReviewTab`. Updated `chatReviewTab` variable: swapped `<FeedbackTab>` for `<ChatReviewTab>`, added `selectedDomain` prop.
+`npm run typecheck` passes with zero errors.
 
 ---
 
@@ -974,13 +967,13 @@ Build the thread drill-down flyout for Chat Review entries. Clicking a row in th
 Follow the pattern of the existing `feedback-tab/feedback-thread-flyout.tsx`:
 1. Accept an entry ID (or full `ChatReviewEntry` object) as a prop
 2. Fetch thread data using `getChatReviewThread` API function
-3. Display the entry metadata (type badge, question preview, rating, timestamp) at the top
+3. Display the entry metadata (rating, reason, comment, created by, created at) in a side panel
 4. Display the full conversation thread below (messages list)
 5. Handle loading and error states
 
 The thread response includes `SessionMessagesResponse` (title, messages, follow_up_suggestions, latest_settings) — render messages the same way the existing feedback thread flyout does.
 
-The flyout should work for both `feedback` and `recorded_turn` entry types — the only visual difference is the type badge.
+The flyout should work for both `feedback` and `recorded_turn` entry types.
 
 #### Success Criteria
 - [ ] Flyout opens when clicking a Chat Review table row
@@ -1000,8 +993,7 @@ The flyout should work for both `feedback` and `recorded_turn` entry types — t
 1. **`frontend/src/pages/organizations/intelligence/components/configure-domains-flyout/chat-review-tab/chat-review-thread-flyout.tsx`** (321 lines) -- Thread flyout component following `feedback-thread-flyout.tsx` pattern exactly. Key differences from the feedback version:
    - Props accept `ChatReviewEntry` (snake_case fields: `entry.user_id`, `entry.session_id`, `entry.checkpoint_id`) instead of `Feedback` (camelCase)
    - Uses `getChatReviewThreadAPI` instead of `getFeedbackThreadAPI`, passing `entryID: entry.id`
-   - Inline metadata side panel (instead of `FeedbackMetadataCard`) with `Detail` helper component showing: Type badge (Feedback/Recorded via `TypeBadge`), Rating (via `RatingBadge`), Reason (resolved via `useGetReasonCodes`), Comment, Created By (`UserPopover`), Created At (`formatDateTime`)
-   - `TypeBadge` component: `entry.type === "feedback"` renders `<Badge variant="neutral">Feedback</Badge>`, `"recorded_turn"` renders `<Badge variant="info">Recorded</Badge>`
+   - Inline metadata side panel (instead of `FeedbackMetadataCard`) with `Detail` helper component showing: Rating (via `RatingBadge`), Reason (resolved via `useGetReasonCodes`), Comment, Created By (`UserPopover`), Created At (`formatDateTime`)
    - Synthetic `feedbackList` built via `React.useMemo`: maps snake_case `ChatReviewEntry` to camelCase `Feedback` shape for `ChatHistoryDisplay` checkpoint highlighting (only for `type === "feedback"` entries; empty array for `"recorded_turn"`)
    - "Go to Session" button uses `entry.session_id` (snake_case) instead of `feedback.sessionID`
    - Owner check uses `entry.user_id === userId`

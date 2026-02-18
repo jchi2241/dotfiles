@@ -45,12 +45,22 @@ The plan describes **intent**. If the implementer deviated from the plan, evalua
 
 ## Your Job
 
-Read the implementation code and verify:
+### Step 1: Extract Success Criteria Checklist
 
-**Missing requirements:**
-- Did they implement everything requested?
-- Are there requirements they skipped or missed?
-- Did they claim something works but didn't actually implement it?
+Before reading any code, extract every success criterion from the task's "Success Criteria" section AND every discrete requirement from the "Description" and "Implementation Notes" sections. Write them as a numbered checklist. Be exhaustive — if a requirement says "all four filters" and names them, each filter is a separate checklist item.
+
+Example: If the task says "Filter controls: Rating, Reason code, User, Date range", your checklist has FOUR items, not one.
+
+### Step 2: Verify Each Item Against Code
+
+For EACH checklist item:
+1. Read the actual implementation code (not the report)
+2. Confirm the item is implemented, or flag it as missing
+3. Mark it: ✅ (verified in code), ❌ (missing/broken), ⚠️ (partial/deviated)
+
+Do NOT skip items. Do NOT batch items together. Every item gets its own line.
+
+### Step 3: Check for Additional Issues
 
 **Extra/unneeded work:**
 - Did they build things that weren't requested?
@@ -68,11 +78,15 @@ Read the implementation code and verify:
 
 ## Report
 
+Include the FULL numbered checklist with pass/fail status for each item.
+
 ✅ SPEC COMPLIANT: [one-line confirmation]
+Checklist: [N]/[N] items verified
 [If deviations exist:] Deviations accepted: [brief list]
 
 or
 
 ❌ SPEC ISSUES:
+Checklist: [N]/[M] items verified, [K] missing
 - [file:line] [what's missing or extra] [severity: blocking | warning]
 ```

@@ -1,3 +1,6 @@
 - never force push without explicitly asking for permissions. this is incredibly dangerous
 - when i ask you to fix my claude settings, commands, skills, ...look in ~/.claude, not in .claude
 - jchi uses Linux (Ubuntu 24.04 LTS Noble) as their laptop OS. Tailor installation instructions and system-specific answers to Linux accordingly.
+- For clipboard operations, use `wl-copy` (Wayland) instead of `xclip` or `xsel`.
+- when rebasing dependent branches after amending a shared commit, skip the shared commit (`git rebase --skip`) or cherry-pick only the branch-specific commits onto the new base tip. Do not re-apply the old version of the amended commit — it causes unnecessary conflicts.
+- User's name is Justin Chi. When searching git commits, use author filters like: --author="jchi" or --author="Justin Chi" (email: jchi@memsql.com)

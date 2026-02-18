@@ -3,9 +3,8 @@
 # Read JSON input from stdin
 input=$(cat)
 
-# Extract context usage percentage
+# Extract context usage percentage and effort level
 used_percentage=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-
 # Build the status line with path
 status=$(printf '\033[01;34m%s\033[00m' "$(pwd | sed "s|^$HOME|~|")")
 
@@ -34,5 +33,6 @@ if [ -n "$used_percentage" ]; then
     else BAR_COLOR='\033[32m'; fi
     status="$status ${BAR_COLOR}${BAR}\033[00m ${PCT}%"
 fi
+
 
 printf '%b\n' "$status"

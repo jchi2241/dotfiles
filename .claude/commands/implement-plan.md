@@ -411,17 +411,25 @@ All [N] phases done. [N] tasks executed.
 
 ### Slack Summary (copy-paste ready)
 
-Hey team, [plan title] is ready for review — [casual 1-sentence summary of what this adds/changes and why].
-1. <PR URL|PR title> — [casual 1-2 sentence explanation]
-2. <PR URL|PR title> — [casual 1-2 sentence explanation]
-...
-Would appreciate eyes on these when you get a chance. Thanks!
+hi team, [plan title] ([feature subtitle]) is ready for review: [N] stacked PRs across [repo(s)] covering [brief list of areas touched].
+
+*[repo name]:*
+1. [PR title](PR URL)
+2. [PR title](PR URL)
+
+*[repo name]:*
+1. [PR title](PR URL)
+2. [PR title](PR URL)
+
+*PRD*: [google doc URL from spec frontmatter, if available]
+
+appreciate your time to take a look at these, thanks!
 
 Suggested next steps:
 - /review-implementation [plan_path] (comprehensive final review)
 ```
 
-**Generating the Slack summary:** For each phase, read the PR title from `gh pr view <URL> --json title` (or use the phase name from the plan) and write a concise explanation from the phase's tasks. Use Slack link syntax: `<URL|PR title>`. Keep the tone work-casual — friendly and concise, not formal.
+**Generating the Slack summary:** For each phase, read the PR title from `gh pr view <URL> --json title`. Use GitHub markdown link syntax: `[PR title](URL)`. Group PRs by repo with italic repo headers (`*repo:*`). No per-PR descriptions, just the linked title. If the spec references a Google Doc PRD, include it as a `*PRD*:` link at the end. Keep the tone lowercase and work-casual - friendly and concise, not formal. No capitalized sentences. Use colons, not em dashes.
 
 ---
 

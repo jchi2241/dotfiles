@@ -17,6 +17,17 @@
   },
   "model": "us.anthropic.claude-opus-4-6-v1",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$CLAUDE_TOOL_INPUT\" | jq -r .command | grep -qP \"git\\s+push\\s+.*(-f|--force|--force-with-lease)\" && echo \"BLOCKED: force push is not allowed. Ask the user to run it manually.\" >&2 && exit 2 || exit 0"
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "permission_prompt",
@@ -29,17 +40,18 @@
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "$HOME/.claude/statusline-command.sh"
+  },
   "enabledPlugins": {
     "code-review@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
   },
   "alwaysThinkingEnabled": true,
+  "skipDangerousModePermissionPrompt": true,
   "feedbackSurveyState": {
     "lastShownTime": 1754033590915
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "$HOME/.claude/statusline-command.sh"
   }
 }

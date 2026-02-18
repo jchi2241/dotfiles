@@ -54,7 +54,7 @@ Domain owners lack visibility into how the analyst is performing for their domai
 | F4 | Toggling ON sets a `recording_enabled_at` timestamp. Only turns occurring after this point are captured. Toggling OFF clears the window. Re-enabling creates a new window — gap turns are never captured. |
 | F5 | Chat Review tab displays both `feedback` and `recorded_turn` entries in a single, unified table sorted newest-first. |
 | F6 | A recorded turn that later receives user feedback is promoted to `type = 'feedback'` — one row per conversation turn, enriched over time. |
-| F7 | Table columns: Type (icon/badge), Question Preview (~150 chars), User, Rating, Timestamp. |
+| F7 | Table columns: Question (clickable, opens thread flyout), Rating (thumbs badge), Reason (resolved display name), Comment, Created By (UserPopover), Created At. Matches feedback tab columns. |
 | F8 | Filters: Rating (segmented control: All/Good/Bad/Unrated), Reason code (multi-select), User (multi-select searchable), Date range (presets: 7d/30d/90d/custom). |
 | F9 | Filters are AND across dimensions, OR within multi-select values. No cascading/dynamic narrowing. |
 | F10 | Cursor-based pagination (Stripe-style, forward-only API) with page size selector (10/20/30/40/50) and prev/next navigation. |
