@@ -168,10 +168,16 @@ worktree-add() {
     echo "Symlinked test/kubeconfig.yml from main repo"
   fi
 
-  if [ -f "$main_repo/.envrc.private" ]; then
-    ln -sf "$main_repo/.envrc.private" .envrc.private
-    echo "Symlinked .envrc.private from main repo"
-  fi
+  # Create .envrc.private that sources the main repo's copy and adds
+  # worktree-specific settings. Go's VCS stamping doesn't recognize the
+  # .git file that worktrees use (only .git directories), so we disable it.
+  {
+    if [ -f "$main_repo/.envrc.private" ]; then
+      echo "source_env $main_repo/.envrc.private"
+    fi
+    echo 'export GOFLAGS="${GOFLAGS:+$GOFLAGS }-buildvcs=false"'
+  } > .envrc.private
+  echo "Created .envrc.private (sources main repo + worktree Go fix)"
 
   # Copy .claude/ directory (CLAUDE.md, settings, etc.) so each worktree
   # starts with the same project instructions but can diverge independently.
