@@ -172,6 +172,13 @@ worktree-add() {
     ln -sf "$main_repo/.envrc.private" .envrc.private
     echo "Symlinked .envrc.private from main repo"
   fi
+
+  # Copy .claude/ directory (CLAUDE.md, settings, etc.) so each worktree
+  # starts with the same project instructions but can diverge independently.
+  if [ -d "$main_repo/.claude" ]; then
+    cp -r "$main_repo/.claude" .claude
+    echo "Copied .claude/ from main repo"
+  fi
 }
 
 # Remove worktree and its branch
