@@ -185,6 +185,12 @@ worktree-add() {
     cp -r "$main_repo/.claude" .claude
     echo "Copied .claude/ from main repo"
   fi
+
+  # Install frontend dependencies for helios worktrees
+  if [ "$repo_name" = "helios" ]; then
+    echo "Helios repo detected — installing frontend deps..."
+    direnv exec . make frontend-deps
+  fi
 }
 
 # Remove worktree and its branch
