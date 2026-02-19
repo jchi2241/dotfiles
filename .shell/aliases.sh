@@ -1,5 +1,11 @@
 alias aliases="vim ~/.dotfiles/.shell/aliases.sh"
 
+# Styled log helpers
+_info()  { echo -e "\033[0;36mℹ $1\033[0m"; }
+_warn()  { echo -e "\033[1;33m⚠ $1\033[0m"; }
+_error() { echo -e "\033[0;31m✗ $1\033[0m" >&2; }
+_ok()    { echo -e "\033[0;32m✓ $1\033[0m"; }
+
 alias v='vim'
 
 # ls aliases
@@ -157,7 +163,7 @@ worktree-add() {
   local worktree_path="../${repo_name}-${dir_name}"
 
   git worktree add "$worktree_path" -b "$branch" "$base" && \
-    echo "Created worktree at $worktree_path" && \
+    _ok "Created worktree at $worktree_path" && \
     cd "$worktree_path" || return 1
 
   # Symlink files that are generated locally and not tracked by git,
@@ -165,7 +171,7 @@ worktree-add() {
   if [ -f "$main_repo/test/kubeconfig.yml" ]; then
     mkdir -p test
     ln -sf "$main_repo/test/kubeconfig.yml" test/kubeconfig.yml
-    echo "Symlinked test/kubeconfig.yml from main repo"
+    _ok "Symlinked test/kubeconfig.yml"
   fi
 
   # Create .envrc.private that sources the main repo's copy and adds
@@ -177,7 +183,7 @@ worktree-add() {
     fi
     echo 'export GOFLAGS="${GOFLAGS:+$GOFLAGS }-buildvcs=false"'
   } > .envrc.private
-  echo "Created .envrc.private (sources main repo + worktree Go fix)"
+  _ok "Created .envrc.private (sources main repo + worktree Go fix)"
 
   # Allow direnv in the new worktree — the .envrc is identical to the
   # main repo's but direnv treats each directory independently.
@@ -188,46 +194,63 @@ worktree-add() {
   if [ -f "$main_repo/local-dev-utilities/analyst/.analyst.envrc" ]; then
     mkdir -p local-dev-utilities/analyst
     ln -sf "$main_repo/local-dev-utilities/analyst/.analyst.envrc" local-dev-utilities/analyst/.analyst.envrc
-    echo "Symlinked .analyst.envrc from main repo"
+    _ok "Symlinked .analyst.envrc"
   fi
 
   # Symlink .claude/ directory so changes propagate to all worktrees.
   if [ -d "$main_repo/.claude" ]; then
     ln -sf "$main_repo/.claude" .claude
-    echo "Symlinked .claude/ from main repo"
+    _ok "Symlinked .claude/"
   fi
 
   # Install frontend dependencies for helios worktrees
   if [ "$repo_name" = "helios" ]; then
-    echo "Helios repo detected — installing frontend deps..."
+    _info "Helios repo detected — installing frontend deps..."
     direnv exec . make frontend-deps
   fi
 }
 
 # Remove worktree and its branch
 worktree-rm() {
-  if [ $# -lt 1 ]; then
-    echo "Usage: worktree-rm <branch-name>"
+  local force=false
+  local branch=""
+
+  for arg in "$@"; do
+    case "$arg" in
+      --force|-f) force=true ;;
+      *) branch="$arg" ;;
+    esac
+  done
+
+  if [ -z "$branch" ]; then
+    echo "Usage: worktree-rm [-f|--force] <branch-name>"
     echo "  Removes the worktree and deletes the branch"
     echo "  Example: worktree-rm chi/feature-x"
+    echo "  Example: worktree-rm chi/feature-x --force"
     return 1
   fi
 
-  local branch="$1"
   local repo_name=$(basename "$(git rev-parse --show-toplevel)")
   local dir_name="${branch//\//-}"
   local worktree_path="../${repo_name}-${dir_name}"
 
   if [ ! -d "$worktree_path" ]; then
-    echo "Worktree not found at $worktree_path"
-    echo "Available worktrees:"
+    _error "Worktree not found at $worktree_path"
+    _info "Available worktrees:"
     git worktree list
     return 1
   fi
 
-  git worktree remove "$worktree_path" && \
-    git branch -d "$branch" && \
-    echo "Removed worktree and branch: $branch"
+  local rm_args=("$worktree_path")
+  local branch_args=(-d "$branch")
+  if [ "$force" = true ]; then
+    rm_args+=(--force)
+    branch_args=(-D "$branch")
+  fi
+
+  git worktree remove "${rm_args[@]}" && \
+    git branch "${branch_args[@]}" && \
+    _ok "Removed worktree and branch: $branch"
 }
 
 # List worktrees
@@ -253,8 +276,8 @@ worktree-cd() {
   local worktree_path=$(git worktree list --porcelain | grep -B2 "branch refs/heads/$branch$" | grep '^worktree' | sed 's/^worktree //')
 
   if [ -z "$worktree_path" ]; then
-    echo "No worktree found for branch: $branch"
-    echo "Available worktrees:"
+    _error "No worktree found for branch: $branch"
+    _info "Available worktrees:"
     git worktree list
     return 1
   fi
