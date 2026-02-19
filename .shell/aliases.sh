@@ -179,6 +179,10 @@ worktree-add() {
   } > .envrc.private
   echo "Created .envrc.private (sources main repo + worktree Go fix)"
 
+  # Allow direnv in the new worktree — the .envrc is identical to the
+  # main repo's but direnv treats each directory independently.
+  direnv allow
+
   # Symlink .analyst.envrc so worktrees share the same analyst config
   # (paths, AWS/Azure credentials) without re-running setup.
   if [ -f "$main_repo/local-dev-utilities/analyst/.analyst.envrc" ]; then
@@ -187,11 +191,10 @@ worktree-add() {
     echo "Symlinked .analyst.envrc from main repo"
   fi
 
-  # Copy .claude/ directory (CLAUDE.md, settings, etc.) so each worktree
-  # starts with the same project instructions but can diverge independently.
+  # Symlink .claude/ directory so changes propagate to all worktrees.
   if [ -d "$main_repo/.claude" ]; then
-    cp -r "$main_repo/.claude" .claude
-    echo "Copied .claude/ from main repo"
+    ln -sf "$main_repo/.claude" .claude
+    echo "Symlinked .claude/ from main repo"
   fi
 
   # Install frontend dependencies for helios worktrees
