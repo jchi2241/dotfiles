@@ -30,6 +30,10 @@ When arguments are provided, adapt the process accordingly. User intent takes pr
 | Never `git push` | Local commits only |
 | Never `git add .` or `-A` | Stage specific files by name |
 
+## Commit Message Prefixes (Helios)
+
+In the helios repo, the first commit on a branch uses the PR title format `[category:type] Description` (e.g., `[backend:fix] Fix auth bug`). Subsequent commits on the same branch use plain messages without the prefix (e.g., `Gate batch agent domain auth`). Check `git log` to see if a prefixed commit already exists on the branch.
+
 ## Process
 
 1. **Understand what changed:**

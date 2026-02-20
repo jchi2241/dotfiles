@@ -23,7 +23,7 @@ Generate a well-structured PR from branch history and conversation context. Core
    ```
    ~/.claude/skills/pr-create/scripts/safe-push.sh -u origin HEAD
    ```
-6. **Create PR** - Use `gh pr create` with the drafted content
+6. **Create PR** - Use `gh pr create` with the drafted content and `--assignee jchi2241`
 
 ## PR Title Format
 
