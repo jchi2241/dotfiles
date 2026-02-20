@@ -82,7 +82,7 @@ Find the original PR number from the commit message (usually in parentheses like
 **Title format:** `[hotfix:fix] hotfix/<tag-name>`
 
 ```bash
-gh pr create --base master --title "[hotfix:fix] hotfix/<tag-name>" --body "..."
+gh pr create --base master --title "[hotfix:fix] hotfix/<tag-name>" --label "run helios ci" --assignee jchi2241 --body "..."
 ```
 
 Use the PR body template below.
