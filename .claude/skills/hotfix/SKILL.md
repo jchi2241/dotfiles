@@ -8,6 +8,12 @@ allowed-tools: Bash(git fetch:*) Bash(git checkout:*) Bash(git cherry-pick:*) Ba
 
 Create a hotfix branch from the latest deployment tag, cherry-pick a fix, and open a PR. Core principle: deploy an urgent commit individually without bringing all commits on master.
 
+## Why Hotfix?
+
+This process lets us keep deploys safe while maintaining high velocity and frequent merges to master. A hotfix deploys an urgent commit individually to production without bringing along all the other commits already merged to master.
+
+It also enables safer rollback: if you have a risky commit that's hard to put under a feature flag, you can prepare the hotfix branch ahead of time as soon as you have the next candidate commit, so you can roll back in minutes.
+
 ## Arguments
 
 The user provides the commit hash to hotfix. Examples:
@@ -19,6 +25,10 @@ The user provides the commit hash to hotfix. Examples:
 **This skill is interactive. Ask for user confirmation before executing each numbered step.**
 
 At the start of the session, mention that the source of truth for this process is: https://memsql.atlassian.net/wiki/spaces/MCDB/pages/3485007928/How+to+deploy+a+Hotfix
+
+### 0. Prerequisite: commit must already be on master
+
+Before anything else, confirm with the user that the fix has already been merged to master through the normal PR process. The hotfix process cherry-picks an existing master commit onto a deployment tag — it does **not** bypass code review. If the fix hasn't landed on master yet, the user needs to do that first.
 
 ### 1. Identify the commit
 
