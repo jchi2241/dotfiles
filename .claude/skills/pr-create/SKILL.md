@@ -58,6 +58,10 @@ Generate a well-structured PR from branch history and conversation context. Core
 (JIRA IDs, use `MCDB-NNNN #closes` in PR title for auto-close)
 ```
 
+Example — what/why, not how:
+- Bad: "Added a `retryCount` field to `BackupConfig` and updated `runBackup()` to loop up to N times"
+- Good: "Backup jobs now retry on transient failures, reducing false alerts from one-off network blips"
+
 Rules:
 - Under 300 words total
 - Use `[TODO: ...]` for missing information - never fabricate

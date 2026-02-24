@@ -127,15 +127,7 @@ alias learns-pull="cd ${LEARNS_PATH} && git pull"
 
 # Notes
 export NOTES_PATH="~/Documents/notes"
-alias notes="code ${NOTES_PATH}/notes.md"
-alias notes-commit="cd ${NOTES_PATH} && gicc"
-alias notes-push="cd ${NOTES_PATH} && git push"
-alias notes-pull="cd ${NOTES_PATH} && git pull"
-
-# Sandboxes
-alias jss="code ~/Documents/sandbox.js"
-alias pys="code ~/Documents/sandbox.py"
-alias mds="code ~/Documents/sandbox.md"
+alias notes="vim ${NOTES_PATH}/notes.md"
 
 alias ucode="sudo apt install code --only-upgrade"
 alias uchrome="sudo apt install google-chrome-stable --only-upgrade"
