@@ -131,8 +131,8 @@
         stdout: true
         stderr: true
     -
-        command: command -v bison >/dev/null 2>&1 || sudo apt-get install -y bison
-        description: Installing bison (required for gvm)...
+        command: 'command -v go >/dev/null 2>&1 || (curl -sL "https://go.dev/dl/$(curl -sL https://go.dev/VERSION?m=text | head -1).linux-amd64.tar.gz" | sudo tar -C /usr/local -xzf -)'
+        description: Installing Go...
         quiet: false
         stdin: true
         stdout: true
@@ -154,13 +154,6 @@
     -
         command: '[ -d ~/.fzf ] || (git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install --all)'
         description: Installing fzf...
-        quiet: false
-        stdin: true
-        stdout: true
-        stderr: true
-    -
-        command: '[ -d ~/.gvm ] || zsh < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)'
-        description: Installing gvm...
         quiet: false
         stdin: true
         stdout: true
@@ -224,6 +217,13 @@
     -
         command: flatpak remote-list | grep -q flathub || flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         description: Adding Flathub repository...
+        quiet: false
+        stdin: true
+        stdout: true
+        stderr: true
+    -
+        command: flatpak list --app --columns=application | grep -q io.github.seadve.Kooha || flatpak install -y flathub io.github.seadve.Kooha
+        description: Installing Kooha (screen recorder)...
         quiet: false
         stdin: true
         stdout: true

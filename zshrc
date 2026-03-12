@@ -22,11 +22,8 @@ if [ -d "$FNM_PATH" ]; then
   eval "`fnm env`"
 fi
 
-# gvm
-[[ -s "/home/jchi/.gvm/scripts/gvm" ]] && source "/home/jchi/.gvm/scripts/gvm"
-# Remove GVM's cd override - it depends on __gvm_* helper functions that
-# Claude Code's shell snapshots filter out, causing errors on every cd
-unfunction cd 2>/dev/null
+# Go
+export PATH="/usr/local/go/bin:$HOME/go/bin:$PATH"
 
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

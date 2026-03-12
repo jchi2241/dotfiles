@@ -280,7 +280,7 @@ Phase [N] tasks complete. Automated verification: [PASS/FAIL with details]
 **If verification fails:** Stop and report. Do not proceed to review or next phase.
 
 #### In --yolo mode:
-Skip review and commit gate. Proceed directly to next phase (or plan completion).
+Skip integration review. Proceed directly to plan update (Step 3b) and commit/PR (Step 3c).
 
 #### In standard and deliberate modes:
 

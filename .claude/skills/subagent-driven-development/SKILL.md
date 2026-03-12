@@ -50,7 +50,7 @@ digraph sdd {
 
 ## Key Principles
 
-1. **Inline context** — Paste full task text into subagent prompts. Never make subagents read plan files.
+1. **Pointer-based dispatch** — Provide plan path and task number. Subagents read the plan file themselves. Only pass dependency summaries and file paths as direct context.
 2. **Spec before quality** — No point reviewing code quality if the wrong thing was built.
 3. **Adversarial spec review** — Reviewer distrusts implementer report, reads actual code.
 4. **Review-fix loops** — Issues found → fix subagent → re-review → repeat until clean. Never skip re-review.
@@ -61,7 +61,7 @@ digraph sdd {
 | Mode | Per-task reviews | Phase review |
 |------|-----------------|--------------|
 | Deliberate | Full two-stage | Cross-task integration review |
-| Standard | Full two-stage | Skipped (tasks already reviewed) |
+| Standard | Full two-stage | Cross-task integration review |
 | YOLO | Self-review only (in implementer) | Skipped |
 
 ## Prompt Templates
@@ -74,7 +74,7 @@ digraph sdd {
 
 **Never:**
 - Dispatch parallel implementers on overlapping files
-- Make subagent read plan file (paste text instead)
+- Paste full task text into prompts (provide pointers; subagents read the plan file themselves)
 - Run quality review before spec compliance passes
 - Proceed with unfixed review issues
 - Skip re-review after fixes
