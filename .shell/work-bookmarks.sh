@@ -19,7 +19,7 @@ alias lhel="kcadm-login && kcadm update realms/memsql -s verifyEmail=false"
 alias rkct="./deploy/kube/util/reload-keycloak-img.sh && ./deploy/kube/util/reset-postgres.sh"
 alias login-ecr="cd ~/projects/aws-ci-runners && make login-registry && cd -"
 alias login-cc="cd ~ && aws sso login --profile=EngAIDevUser-651246146166 && cd -"
-alias nukehelios="docker exec k3d-helios-infra-local-dev-server-0 sh -c 'rm -rf /helios-pg-data/*' 2>/dev/null; rm -rf ~/.helios-pgdata/* 2>/dev/null; hel && rm -rf singlestore.com/helios/bin && cd singlestore.com/helios && goclean && hel && make docker-nuke"
+alias nukehelios="sudo rm -rf ~/.helios-pgdata/* 2>/dev/null; hel && rm -rf singlestore.com/helios/bin && cd singlestore.com/helios && goclean && hel && make docker-nuke"
 alias init-analyst="NOVA=1 SINGLESTORE_NEXUS=/home/jchi/projects/singlestore-nexus make kube-init && make start-nova-workspace && make setup-analyst && make frontend-start"
 
 # Test example commands
