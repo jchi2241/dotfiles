@@ -66,6 +66,16 @@
         path: .claude/statusline-command.sh
         force: true
 
+    # Cursor configuration
+    ~/.cursor/hooks.json:
+        path: .cursor/hooks.json
+        create: true
+        force: true
+    ~/.cursor/hooks:
+        path: .cursor/hooks
+        create: true
+        force: true
+
     # MCP configuration
     ~/.config/Code/User/mcp.json:
         path: .config/Code/User/mcp.json
