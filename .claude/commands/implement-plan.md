@@ -1,6 +1,6 @@
 ---
 description: Execute tasks from an implementation plan
-argument-hint: [plan file path] [--deliberate | --yolo]
+argument-hint: [plan file path] [--deliberate | --yolo | --auto]
 model: opus
 ---
 
@@ -9,7 +9,7 @@ model: opus
 Execute tasks from an implementation plan created by the `create-plan` command.
 
 **Required argument:** Path to the plan file
-**Optional flags:** `--deliberate` | `--yolo` (default: standard mode)
+**Optional flags:** `--deliberate` | `--yolo` | `--auto` (default: standard mode)
 
 ---
 
@@ -19,11 +19,12 @@ Parse `$ARGUMENTS` for mode flags. The plan path is the first non-flag argument.
 
 | Mode | Flag | Behavior |
 |------|------|----------|
-| **Standard** | _(default)_ | Full ceremony. Per-task two-stage review + cross-task integration review + batch checkpoints every 3 tasks. Single orchestrator session across all phases. |
+| **Standard** | _(default)_ | Full ceremony. Per-task two-stage review + cross-task integration review + batch checkpoints every 3 tasks. Single orchestrator session across all phases. Pauses for user confirmation at batch checkpoints and commit gates. |
 | **Deliberate** | `--deliberate` | Everything in Standard + session ENDS after each phase. On resume, cross-phase integration check validates previous work before continuing. Use `/continue-plan` to resume in a fresh session. |
+| **Auto** | `--auto` | Everything in Standard (per-task spec + code quality reviews, cross-task integration review) but UNATTENDED. Auto-continues past batch checkpoints and commit gates without waiting for user confirmation. Single orchestrator session across all phases. Only stops on failures or blocking review issues. |
 | **YOLO** | `--yolo` | Self-review only (no external reviews). Commits at end. No session breaks. Only stops on failures. |
 
-**Parsing:** Split `$ARGUMENTS` on whitespace. Look for `--deliberate` or `--yolo`. Everything else is the plan file path. If both flags are present, error and ask user to pick one.
+**Parsing:** Split `$ARGUMENTS` on whitespace. Look for `--deliberate`, `--yolo`, or `--auto`. Everything else is the plan file path. The three mode flags are mutually exclusive — if more than one is present, error and ask user to pick one.
 
 ---
 
@@ -32,11 +33,10 @@ Parse `$ARGUMENTS` for mode flags. The plan path is the first non-flag argument.
 Before implementing, verify:
 
 1. **Plan file exists** at the provided path
-2. **Read the plan file** completely — extract:
-   - `task_list_id` from frontmatter
-   - `spec` path from frontmatter (if present)
-   - `research_doc` path from frontmatter (if present)
-   - Phase structure and task breakdown
+2. **Load plan metadata only — do NOT read the full plan file.** The plan can be thousands of lines; pulling it into the orchestrator's context defeats subagent isolation and is the single largest source of orchestrator token bloat. Instead:
+   - `Read` the plan with `limit: 50` to capture frontmatter + overview. Extract `task_list_id`, `spec`, `research_doc` from frontmatter.
+   - `Grep` the plan for `^## Phase|^### Task` with `output_mode: content, -n: true` to get phase/task structure without bodies.
+   - Subagents read their own task sections on dispatch. The orchestrator never needs full task descriptions.
 3. **Task List path** is recorded in the plan header
 4. **Tasks exist** — check the task list directory has JSON files
 5. **Derive plan slug** — from plan filename: strip date prefix and `.md` suffix (e.g., `2026-02-09_add-auth.md` → `add-auth`). This slug is used for worktree and branch naming.
@@ -83,14 +83,14 @@ CLAUDE_CODE_TASK_LIST_ID=<uuid> claude
 
 ```
 Plan loaded. [Task APIs active / Using JSON fallback]
-Mode: [standard / deliberate / yolo]
+Mode: [standard / deliberate / auto / yolo]
 Spec: [path or "none referenced"]
 Progress: [X]/[Y] tasks complete, Phase [completed]/[total] phases complete
 Current phase: Phase [N] — [phase name] ([X] pending tasks)
 [If resuming in deliberate mode]: Resume detected — will run cross-phase integration check first.
 ```
 
-**Wait for user confirmation before proceeding.**
+**Wait for user confirmation before proceeding.** (In `--auto` mode, skip this gate: report status and proceed directly to branch setup and execution. The whole point of auto mode is an unattended run.)
 
 ### Step 1a: Cross-Phase Integration Check (deliberate mode resume only)
 
@@ -160,6 +160,8 @@ git rev-parse --git-common-dir
 - **Worktree isolation** — user creates worktree externally (e.g., `wta`), then re-runs
 - **Branch-only** — create branches in the current repo directly
 
+**In `--auto` mode:** Do not block on this prompt. Default to **branch-only** (create branches in the current repo directly) and note the choice in the status report. If the user wanted worktree isolation for an unattended run, they should start inside a worktree before invoking.
+
 **Branch creation (all flows):**
 
 For Phase 1: `git checkout -b "chi/${SLUG}-phase-1"`
@@ -171,15 +173,16 @@ For resume (Phase N > 1): verify current branch matches expected phase, checkout
 
 **Uses: `subagent-driven-development` skill** — see `~/.claude/skills/subagent-driven-development/SKILL.md` for the full per-task loop and prompt templates.
 
-**Preparation:** Read the plan file once to understand phase structure, task ordering, and dependencies. Note the spec path from frontmatter. You do NOT need to extract full task text — subagents read the plan file themselves.
+**Preparation:** Step 1 already loaded phase/task structure via bounded read + grep. Do NOT re-read the full plan. Note the spec path from frontmatter.
 
 **Orchestrator discipline:** Your role is thin dispatch and coordination. You provide pointers (plan path, task number, file paths from completed dependencies), not content. Do NOT:
 - Extract or paste task descriptions from the plan into subagent prompts
+- Pre-read prompt template files (`implementer-prompt.md`, `spec-reviewer-prompt.md`, `code-quality-reviewer-prompt.md`) — the subagent reads its own template. Your dispatch prompt is a short pointer, not the full template body.
 - Read the spec to pull excerpts for subagents
 - Explore the codebase, read source files, or run searches
 - Pre-digest anything the subagent can read itself
 
-Each subagent gets a fresh context window. They read the plan, the spec, and the codebase directly. Your context window is reserved for coordination: tracking task status, handling responses, managing dependencies, and reporting to the user.
+Each subagent gets a fresh context window. They read the plan, the spec, the template, and the codebase directly. Your context window is reserved for coordination: tracking task status, handling responses, managing dependencies, and reporting to the user.
 
 **Batch size:** 3 tasks. After every 3 completed tasks within a phase, pause for a batch checkpoint (see Step 2f).
 
@@ -188,31 +191,62 @@ For each unblocked, pending task in the current phase:
 #### 2a. Dispatch Implementer
 
 1. **Mark task as in_progress** (Task APIs or JSON fallback)
-2. **Dispatch implementer subagent** (model: **opus**, subagent_type: **general-purpose**) using the template in `~/.claude/skills/subagent-driven-development/implementer-prompt.md`. Fill in the template placeholders:
-   - Plan file path and task number (subagent reads its own task section)
-   - Spec file path (from plan frontmatter)
-   - Working directory, branch, commit prefix `[PN/TM]`
-   - Environment notes (e.g., "TypeScript compiler not available, use --no-verify")
-   - **Completed dependencies:** For each completed blocking task, one line: task number, one-line summary (from its COMPLETED response), and key file paths it created/modified. This is the only "content" you provide — it tells the subagent where to verify interfaces.
-   - **Sibling tasks:** Brief list of other tasks in the phase and their status.
+2. **Dispatch implementer subagent** (model: **opus**, subagent_type: **general-purpose**). The dispatch prompt is a SHORT pointer — do NOT inline the template body. The subagent reads the template itself. Structure:
+
+```
+Read ~/.claude/skills/subagent-driven-development/implementer-prompt.md — that is your full instructions. Follow it.
+
+Plan: [plan_path]
+Task: [N]  (read "### Task [N]:" section in the plan for the specification)
+Spec: [spec_path or "see plan frontmatter"]
+Working dir: [dir]
+Branch: [branch]
+Commit prefix: [PN/TM]
+Env: [one-line environment notes, or omit]
+
+Completed dependencies:
+- Task [N]: [one-line summary] — files: [paths]
+(or "None")
+
+Sibling tasks this phase: [brief list with statuses]
+```
+
+   The whole dispatch prompt should be ~20-40 lines. Everything else is in the template file the subagent reads.
+
 3. **Handle response:**
-   - If subagent asks questions → answer from the plan/spec (read if needed), then re-dispatch with answers incorporated
+   - If subagent asks questions → answer from the plan/spec (targeted `Read` with offset/limit if needed), then re-dispatch with answers incorporated
    - If `COMPLETED:` → **store the one-line summary and files changed** (you'll pass these to dependent tasks and reviewers) → proceed to spec review (step 2b)
    - If `FAILED:` → do NOT mark completed, report failure to user with details, stop and wait for user input
 
 #### 2b. Spec Compliance Review (skip in --yolo mode)
 
-1. **Dispatch spec reviewer** (model: **opus**, subagent_type: **general-purpose**) using the template in `~/.claude/skills/subagent-driven-development/spec-reviewer-prompt.md`. Provide:
-   - Plan file path and task number (reviewer reads the task section itself)
-   - Implementer's report (summary, files changed, deviations, self-review findings)
+1. **Dispatch spec reviewer** (model: **opus**, subagent_type: **general-purpose**). Short pointer-based prompt:
+
+```
+Read ~/.claude/skills/subagent-driven-development/spec-reviewer-prompt.md — that is your full instructions. Follow it.
+
+Plan: [plan_path]
+Task: [N]  (read "### Task [N]:" section in the plan)
+
+Implementer's report:
+[paste report verbatim — summary, files changed, deviations, self-review]
+```
+
 2. **Handle response:**
    - `✅ SPEC COMPLIANT` → proceed to code quality review (step 2c)
    - `❌ SPEC ISSUES` → dispatch fix subagent (step 2e) with the specific issues → re-dispatch spec reviewer → repeat until compliant
 
 #### 2c. Code Quality Review (skip in --yolo mode)
 
-1. **Dispatch code quality reviewer** (model: **opus**, subagent_type: **general-purpose**) using the template in `~/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md`. Provide:
-   - Task summary and files changed
+1. **Dispatch code quality reviewer** (model: **opus**, subagent_type: **general-purpose**). Short pointer-based prompt:
+
+```
+Read ~/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md — that is your full instructions. Follow it.
+
+Task: [one-line summary]
+Files changed: [list]
+```
+
 2. **Handle response:**
    - `✅ QUALITY APPROVED` → mark task as completed
    - `❌ QUALITY ISSUES with blocking items` → dispatch fix subagent (step 2e) → re-dispatch quality reviewer → repeat until approved
@@ -223,6 +257,7 @@ For each unblocked, pending task in the current phase:
 - **Launch independent tasks in parallel** when possible (same phase, no blocking dependencies, no overlapping files to modify)
 - Each parallel task runs its own full review loop (2a → 2b → 2c)
 - **Wait for dependent tasks** to complete before launching blocked tasks
+- **File-overlap check before parallel dispatch:** Since you did not read the full plan in Step 1, `blockers` in TaskList are your primary signal. Before launching 2+ tasks in parallel within the same phase, do a bounded `Grep` over the plan for the candidate tasks' "Files:" lines (e.g., `^### Task (A|B):` with `-A 30`, then eyeball for overlap). If any file appears in multiple candidates' file lists, serialize those tasks — do not parallelize. This is a cheap targeted read; do NOT re-read the whole plan.
 
 #### 2e. Fix Subagent Protocol
 
@@ -262,7 +297,9 @@ Automated verification: [run relevant tests, report PASS/FAIL]
 Continue with next batch?
 ```
 
-**Wait for user confirmation.** This prevents context buildup within large phases and gives the user a natural intervention point.
+**In standard and deliberate modes: Wait for user confirmation.** This prevents context buildup within large phases and gives the user a natural intervention point.
+
+**In --auto mode:** Do NOT wait. Report the batch summary and automated verification, then continue immediately to the next batch. The only exception is if automated verification FAILED — in that case stop and report (same as a task failure).
 
 If the remaining tasks in the phase are 3 or fewer, skip the checkpoint and complete the phase (Step 3 handles end-of-phase reporting).
 
@@ -282,7 +319,7 @@ Phase [N] tasks complete. Automated verification: [PASS/FAIL with details]
 #### In --yolo mode:
 Skip integration review. Proceed directly to plan update (Step 3b) and commit/PR (Step 3c).
 
-#### In standard and deliberate modes:
+#### In standard, auto, and deliberate modes:
 
 Per-task reviews (spec compliance + code quality) are already complete from Step 2. Run a lightweight **cross-task integration review**, then commit gate.
 
@@ -327,7 +364,9 @@ ISSUES FOUND:
 **Handling review results:**
 
 - **PASSED:** Report to user and proceed to commit gate.
-- **ISSUES FOUND with blocking items:** Present issues to user. Ask: "Fix these before proceeding, or continue anyway?" Wait for user decision.
+- **ISSUES FOUND with blocking items:**
+  - **Standard / deliberate:** Present issues to user. Ask: "Fix these before proceeding, or continue anyway?" Wait for user decision.
+  - **Auto:** Stop and report the blocking issues (same as a task failure). Do not commit or continue to the next phase. Unattended mode does not silently push past blocking integration issues.
 - **ISSUES FOUND with warnings only:** Report warnings and proceed to commit gate.
 
 **3b. Update Plan File**
@@ -374,7 +413,7 @@ Phase [N] complete and reviewed. [PASSED / N warnings]
 Committed and PR created for branch chi/<slug>-phase-<N>.
 ```
 
-**In standard mode:** Proceed to next phase.
+**In standard and auto modes:** Proceed to next phase. In auto mode, do this immediately without pausing for confirmation.
 
 **In deliberate mode:** **STOP**. Do not continue to the next phase. Output:
 
@@ -448,7 +487,7 @@ This command supports resuming interrupted implementations:
 **Manual resume (any mode):**
 ```bash
 CLAUDE_CODE_TASK_LIST_ID=<uuid> claude
-/implement-plan <plan_path> [--deliberate | --yolo]
+/implement-plan <plan_path> [--deliberate | --yolo | --auto]
 ```
 
 ---
