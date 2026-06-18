@@ -6,8 +6,7 @@
     "AWS_PROFILE": "ClaudeCode",
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16384",
     "MAX_THINKING_TOKENS": "2048",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "us.anthropic.claude-opus-4-6-v1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "includeCoAuthoredBy": false,
   "permissions": {
@@ -15,7 +14,7 @@
       "Read(~/.claude/thoughts/**)"
     ]
   },
-  "model": "opus",
+  "model": "us.anthropic.claude-opus-4-8[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -47,13 +46,22 @@
   "enabledPlugins": {
     "code-review@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true,
+    "figma@claude-plugins-official": false,
+    "skill-creator@claude-plugins-official": true,
+    "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
     "chrome-devtools-plugins": {
       "source": {
         "source": "github",
         "repo": "ChromeDevTools/chrome-devtools-mcp"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
       }
     }
   },

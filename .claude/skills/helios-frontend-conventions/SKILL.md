@@ -7,7 +7,17 @@ description: Use when writing or modifying React/TypeScript frontend code in the
 
 Stylistic rules for React/TypeScript code in the helios frontend. Follow these whenever writing or modifying frontend code.
 
-## 1. No inline render functions
+## 1. Optimize for readability first
+
+Do not add `React.useMemo` for cheap local transforms like sorting a small filter list. Prefer straightforward variables:
+
+```tsx
+const sortedItems = [...items].sort();
+```
+
+Use memoization when there is a real render cost, stable-reference requirement, or existing local pattern that needs it.
+
+## 2. No inline render functions
 
 Don't define `renderX()` functions inside components. Extract them as separate components with typed props.
 
@@ -37,7 +47,7 @@ function ParentComponent({ items }: Props) {
 }
 ```
 
-## 2. No `&&` or ternary for conditional rendering
+## 3. No `&&` or ternary for conditional rendering
 
 Use the if-block variable pattern instead of `&&` or `? :` in JSX.
 

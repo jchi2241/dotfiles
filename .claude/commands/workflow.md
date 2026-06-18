@@ -14,11 +14,13 @@ Show the feature development pipeline and detect where you currently are.
 The full workflow pipeline:
 
 ```
-/map-codebase → /create-spec → /create-plan → /implement-plan → /commit → /pr-create
-                                                    ↕ (per phase)        ↑
-                                            /review-implementation   /continue-plan
-                                                                   (fresh session)
+/brainstorm → /map-codebase → /create-spec → /create-plan → /implement-plan → /commit → /pr-create
+ (optional)                                                       ↕ (per phase)        ↑
+                                                          /review-implementation   /continue-plan
+                                                                                 (fresh session)
 ```
+
+**When to start with `/brainstorm`:** You have a fuzzy problem or feature and aren't sure where the limits are. Skip it when the task is already crisp — go straight to `/map-codebase` or `/create-spec`.
 
 **Phase lifecycle:** `/implement-plan` executes one phase per session, then stops. `/continue-plan` resumes in a fresh session with a cross-phase integration check. Repeat until all phases are done.
 
@@ -32,6 +34,7 @@ Scan these directories for artifacts:
 
 | Stage | Directory | Frontmatter type |
 |-------|-----------|-----------------|
+| Brief | `~/.claude/thoughts/briefs/` | `type: brief` |
 | Map | `~/.claude/thoughts/research/` | `type: research` |
 | Spec | `~/.claude/thoughts/specs/` | `type: spec` |
 | Plan | `~/.claude/thoughts/plans/` | `type: plan` |

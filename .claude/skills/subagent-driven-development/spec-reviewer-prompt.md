@@ -78,15 +78,17 @@ Do NOT skip items. Do NOT batch items together. Every item gets its own line.
 
 ## Report
 
-Include the FULL numbered checklist with pass/fail status for each item.
+Your report goes into the orchestrator's context. Keep it terse. Target: under 300 bytes on the happy path.
 
-✅ SPEC COMPLIANT: [one-line confirmation]
-Checklist: [N]/[N] items verified
-[If deviations exist:] Deviations accepted: [brief list]
+Work through the full numbered checklist in your own context (it's how you avoid sloppy reviews), but **do NOT paste the full checklist in the report.** Only report the score and actionable issues.
+
+✅ SPEC COMPLIANT: [one-line confirmation]. Checklist: [N]/[N].
+[If deviations exist:] Deviations accepted: [brief list, one line]
 
 or
 
-❌ SPEC ISSUES:
-Checklist: [N]/[M] items verified, [K] missing
-- [file:line] [what's missing or extra] [severity: blocking | warning]
+❌ SPEC ISSUES. Checklist: [N]/[M], [K] missing/broken.
+- [file:line] [what's missing or extra] [blocking|warning]
+
+**Do NOT include:** preamble ("I have enough information..."), the full checklist with ✅s, rationale essays, or analysis of justified deviations beyond a one-line accepted list. The orchestrator only needs the verdict and actionable issues.
 ```

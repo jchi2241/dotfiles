@@ -8,6 +8,9 @@ alias bf='cd ~/projects/bifrost'
 alias elq='cd ~/projects/eloqua'
 alias blog='cd ~/projects/blog'
 alias hel='cd ~/projects/helios'
+alias helai='cd ~/projects/heliosai'
+alias sai='cd ~/projects/singlestore-ai'
+alias snexus='cd ~/projects/singlestore-nexus'
 
 # Bifrost commands
 alias rbf='bf && make start-frontend'
@@ -19,7 +22,8 @@ alias lhel="kcadm-login && kcadm update realms/memsql -s verifyEmail=false"
 alias rkct="./deploy/kube/util/reload-keycloak-img.sh && ./deploy/kube/util/reset-postgres.sh"
 alias login-ecr="cd ~/projects/aws-ci-runners && make login-registry && cd -"
 alias login-cc="cd ~ && aws sso login --profile=EngAIDevUser-651246146166 && cd -"
-alias nukehelios="sudo rm -rf ~/.helios-pgdata/* 2>/dev/null; hel && rm -rf singlestore.com/helios/bin && cd singlestore.com/helios && goclean && hel && make docker-nuke"
+alias nukehelios="hel && rm -rf singlestore.com/helios/bin && cd singlestore.com/helios && goclean && hel && make docker-nuke"
+alias nukefreyadb="hel && make kube-delete && sudo rm -rf ~/.helios-pgdata"
 alias init-analyst="NOVA=1 SINGLESTORE_NEXUS=/home/jchi/projects/singlestore-nexus make kube-init && make start-nova-workspace && make setup-analyst && make frontend-start"
 
 # Test example commands

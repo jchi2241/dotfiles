@@ -131,6 +131,10 @@ alias notes="vim ${NOTES_PATH}/notes.md"
 
 alias ucode="sudo apt install code --only-upgrade"
 alias uchrome="sudo apt install google-chrome-stable --only-upgrade"
+alias usnap="sudo snap refresh"
+alias uflatpak="flatpak update -y"
+alias upkgs="usnap && uflatpak"
+alias pkgcheck='echo "== snap =="; snap refresh --list; echo "== flatpak =="; flatpak remote-ls --updates'
 
 # Git worktree helpers
 # worktree-add <branch> [base] - create worktree with new branch

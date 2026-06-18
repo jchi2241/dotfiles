@@ -3,12 +3,25 @@
 # Read JSON input from stdin
 input=$(cat)
 
-# Extract context usage percentage and effort level
+# Extract fields from statusline JSON
 used_percentage=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+model_name=$(echo "$input" | jq -r '.model.display_name // empty')
+
+# Effort isn't exposed via statusline JSON — read from settings.json
+effort=$(jq -r '.effortLevel // empty' "$HOME/.claude/settings.json" 2>/dev/null)
+
 # Build the status line with path
 status=$(printf '\033[01;34m%s\033[00m' "$(pwd | sed "s|^$HOME|~|")")
 
-# Add git branch if in a repo, prefixed with wt: if in a worktree
+# Add model and effort (dim/cyan)
+if [ -n "$model_name" ]; then
+    # "Opus 4.7 (1M context)" -> "Opus 4.7 1M"
+    meta=$(echo "$model_name" | sed -E 's/ \(([0-9]+[KM]) context\)/ \1/')
+    [ -n "$effort" ] && meta="$meta/$effort"
+    status="$status $(printf '\033[36m[%s]\033[00m' "$meta")"
+fi
+
+# Add git branch if in a repo, prefixed with 🌳 if in a worktree
 branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 if [ -n "$branch" ]; then
     git_dir=$(git rev-parse --git-dir 2>/dev/null)

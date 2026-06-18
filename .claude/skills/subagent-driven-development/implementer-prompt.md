@@ -76,7 +76,7 @@ Once clear on requirements:
 
 **You MUST complete ALL of these before reporting COMPLETED. No exceptions.**
 
-1. **Run every verification command** from the Success Criteria. Paste the full output.
+1. **Run every verification command** from the Success Criteria. Keep the full output in your own context — do NOT paste it in the report to the orchestrator. The "Verified" line in the report summarizes it (e.g., `pytest tests/ — 32 passed`).
 2. **All tests must pass.** If any test fails, you are not done. Fix it or report FAILED.
 3. **Read your own diff.** Run `git diff` and read every line you changed. Look for:
    - Debug prints, commented-out code, TODOs
@@ -126,18 +126,22 @@ If you find issues during self-review, fix them before reporting.
 
 ## Report Format
 
+Your report goes back to the orchestrator's context window. Keep it terse — the orchestrator is a thin dispatcher, not a reader. Target: under 500 bytes on the happy path.
+
 When done, return:
 
 COMPLETED: [one-line summary]
-Files changed: [list]
-Deviations from plan: [any interfaces or approaches that differ from what the plan described, and why — or "none"]
-Verification output: [paste actual command output — not a summary]
-Self-review: [any findings you fixed, or "clean"]
+Files: [list]
+Deviations: [brief list of real deviations, or "none"]
+Verified: [one line naming the command(s) you ran + result, e.g. "pytest tests/ — 32 passed"]
+Self-review: [one line: "clean" OR "fixed: <findings>"]
+
+**Do NOT paste full test output, full diffs, rationale essays, or preamble.** If the orchestrator needs details, it will ask. The commit you pushed is the source of truth.
 
 or
 
 FAILED: [one-line reason]
-Blocker: [what prevented completion]
+Blocker: [what prevented completion — one or two lines]
 
 ## Important
 - Do not modify code outside the scope of this task

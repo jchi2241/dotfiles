@@ -43,7 +43,7 @@ Generate a well-structured PR from branch history and conversation context. Core
 (1-3 sentences on PURPOSE and IMPACT, not line-by-line changes)
 
 ## Test Plan
-(How was this tested? Use `[INSERT VIDEO]` for frontend PRs)
+(Mention meaningful manual or targeted validation. For frontend PRs, attach verified visual proof when useful; use `pr-image-upload` for GitHub-hosted screenshots/GIFs.)
 
 ## Deployment Plan
 - Customer impact: Yes/No
@@ -65,6 +65,8 @@ Example — what/why, not how:
 Rules:
 - Under 300 words total
 - Use `[TODO: ...]` for missing information - never fabricate
+- Do not list routine checks just to prove they ran; CI signal is enough unless the check is special or not covered by CI
+- Do not leave `[INSERT VIDEO]` or screenshot placeholders in review-ready PRs
 
 ## Important
 

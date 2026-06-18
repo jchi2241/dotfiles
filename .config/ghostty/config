@@ -52,6 +52,8 @@ font-style = Medium
 
 keybind = performable:ctrl+c=copy_to_clipboard
 
+split-divider-color = #5c6370
+
 # Vim-style split navigation
 keybind = ctrl+shift+h=goto_split:left
 keybind = ctrl+shift+j=goto_split:bottom

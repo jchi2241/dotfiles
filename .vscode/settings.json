@@ -54,7 +54,7 @@
     "editor.insertSpaces": true,
     "editor.tabSize": 4,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": false,
+    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": "always",
         "source.addMissingImports": "never",
@@ -507,4 +507,5 @@
         "typescript",
         "typescriptreact",
     ],
+    "js/ts.experimental.useTsgo": true,
 }

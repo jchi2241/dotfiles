@@ -43,10 +43,14 @@ Review the implementation for:
 
 ## Report
 
+Your report goes into the orchestrator's context. Target: under 200 bytes on the happy path.
+
+Do your analysis in your own context. Do NOT include preamble ("I have enough information..."), what-you-checked narration, rationale for approvals, or listings of clean files. Just the verdict.
+
 ✅ QUALITY APPROVED: [one-line summary]
 
 or
 
 ❌ QUALITY ISSUES:
-- [file:line] [description] [severity: blocking | warning]
+- [file:line] [description] [blocking|warning]
 ```
