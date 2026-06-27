@@ -1,5 +1,9 @@
 ---
 title: Hardware Troubleshooting - USB Receiver Dropping Keystrokes with 4K @ 120Hz Monitor
+summary: Resolves 2.4 GHz wireless keyboard/mouse stuttering caused by high-bandwidth HDMI 2.1 EMI, physical port crowding, and Linux USB autosuspend.
+symptoms: Wireless keyboard/mouse lag, stuttering, and dropped keystrokes when connected to an external display.
+root_cause: High-bandwidth HDMI 2.1 signaling emits 2.4 GHz EMI. Physical crowding causes mechanical disconnects. USB autosuspend drops wake-up packets in a noisy RF environment.
+fix: Disable USB autosuspend via GRUB (usbcore.autosuspend=-1) and physically isolate the receiver (use monitor's USB hub or move to opposite side of laptop).
 tags: [usb, hdmi, emi, interference, power-management, autosuspend, thinkpad, samsung-odyssey]
 date: 2026-06-27
 ---
