@@ -14,7 +14,7 @@
   - Do not take shortcuts based on human-like time constraints (e.g., assuming a proper solution takes too long to build). You write code instantly; lean towards the correct, long-term architectural solution.
   - Design with strong invariants and make bad states physically impossible.
   - Avoid adding defensive fallbacks; prefer explicit errors and failing fast ("error often and early").
-  - Do not paper over unclear designs with more machinery (i.e., adding complex code layers to hide a fundamental architectural flaw instead of refactoring the flaw itself).
+  - Do not paper over unclear designs with more machinery; refactor the underlying flaw instead of hiding it behind complex code layers.
 - **E2E Bug Reproduction:** Always reproduce bugs in an E2E setting mimicking the end-user experience before fixing them to ensure the real problem is solved.
 - **UI & Pixel Perfection:** Be obsessed with pixel perfection and UI details during E2E testing.
 - **One Sentence Per Line:** Put each full sentence on its own line when writing or editing long Markdown files.
