@@ -83,6 +83,9 @@ When phase-1 merges to main:
 3. Retarget phase-2 PR to `main`
 4. Repeat cascade for subsequent phases
 
+### Rebasing After Amending Shared Commits
+When rebasing dependent branches after amending a shared commit, skip the shared commit (`git rebase --skip`) or cherry-pick only the branch-specific commits onto the new base tip. Do not re-apply the old version of the amended commit — it causes unnecessary conflicts.
+
 ## Commit Message Format
 
 ```
