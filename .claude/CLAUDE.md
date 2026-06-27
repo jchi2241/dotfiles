@@ -3,4 +3,3 @@
 - For clipboard operations, use `wl-copy` (Wayland) instead of `xclip` or `xsel`.
 - when rebasing dependent branches after amending a shared commit, skip the shared commit (`git rebase --skip`) or cherry-pick only the branch-specific commits onto the new base tip. Do not re-apply the old version of the amended commit — it causes unnecessary conflicts.
 - User's name is Justin Chi. When searching git commits, use author filters like: --author="jchi" or --author="Justin Chi" (email: jchi@memsql.com)
-- When reading, creating, or updating personal technical learnings, hardware troubleshooting, or system configuration guides, strictly follow the `personal-learnings` skill. Do not auto-load full document contents unless relevant to the user query.
