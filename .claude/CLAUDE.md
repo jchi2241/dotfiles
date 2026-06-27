@@ -1,4 +1,4 @@
-# CLAUDE.md
+# Justin's Agent Instructions
 
 ## System & Environment
 
