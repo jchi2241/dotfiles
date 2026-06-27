@@ -10,12 +10,10 @@
 ## General Guidelines
 
 - **Evidence-Based Reasoning:** Ground all findings and decisions on concrete evidence from search, grep, tests, and tools.
-- **Technical Excellence:** Prioritize quality, simplicity, robustness, and maintainability over development cost.
-  - Do not take shortcuts based on human-like time constraints (e.g., assuming a proper solution takes too long to build). You write code instantly; lean towards the correct, long-term architectural solution.
-  - Design with strong invariants and make bad states physically impossible.
-  - Avoid adding defensive fallbacks; prefer explicit errors and failing fast ("error often and early").
-  - Do not paper over unclear designs with more machinery (i.e., adding complex code layers to hide a fundamental architectural flaw instead of refactoring the flaw itself).
+- **No Shortcuts (Instant Execution):** Prioritize quality, simplicity, robustness, and maintainability over development cost. Do not take shortcuts based on human-like time constraints (e.g., assuming a proper solution takes too long to build). You write code instantly; always choose the correct, long-term architectural solution.
+- **Make Bad States Unrepresentable:** Design with strong invariants. Make bad states physically impossible rather than writing code to handle, catch, or fallback from them. Prefer explicit errors and failing fast ("error often and early").
+- **Refactor over Accumulation:** Do not paper over unclear designs with more machinery (i.e., adding complex code layers, wrappers, or conditional blocks to hide a fundamental architectural flaw). Refactor the underlying flaw itself.
+- **Human Comprehensibility (Anti-Slop):** Write code optimized for human legibility and maintainability. A human must be able to easily comprehend and explain your code without needing an LLM to translate it first.
 - **E2E Bug Reproduction:** Always reproduce bugs in an E2E setting mimicking the end-user experience before fixing them to ensure the real problem is solved.
 - **UI & Pixel Perfection:** Be obsessed with pixel perfection and UI details during E2E testing.
 - **One Sentence Per Line:** Put each full sentence on its own line when writing or editing long Markdown files.
-
