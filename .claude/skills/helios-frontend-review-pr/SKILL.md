@@ -29,7 +29,10 @@ Read these sibling skills when needed: `helios-frontend-conventions`, `commit`, 
 
    ```bash
    direnv exec <worktree> bash -c 'cd frontend && pnpm run tsgo && pnpm run lint:fix && pnpm run prettier'
+   direnv exec <worktree> bash -c 'cd frontend && pnpm run -r --no-bail --workspace-concurrency 1 lint'
    ```
+
+   The recursive `pnpm ... lint` command mirrors the ESLint portion of the GitHub `lint-frontend` job and catches repo-wide failures such as duplicate imports and unused imports that are easy to miss after review-fix commits.
 
 5. Capture visual proof for user-visible changes with `make frontend-start-mocked`, not CCT screenshots unless the mocked app cannot reach the state. Save screenshots and GIFs under `~/Pictures` with descriptive names. BEFORE/AFTER is required when it makes sense: visual regressions, layout changes, ordering/filtering behavior, dialogs, empty/error states, or anything the reviewer benefits from seeing. A single AFTER is acceptable for purely additive UI or when BEFORE is indistinguishable from an error/blank state.
 6. Inspect every screenshot before using it. If the target UI is missing, cropped, hidden behind a loading state, dimmed, or not showing the changed behavior, retake it.
@@ -88,5 +91,6 @@ The task is done when:
 
 - The branch has only intended changes.
 - Targeted checks passed or blockers are clearly stated.
+- The recursive frontend lint command passed after the final frontend commit.
 - Visual proof is captured, inspected, and attached when useful.
 - The PR is pushed and ready for user review.

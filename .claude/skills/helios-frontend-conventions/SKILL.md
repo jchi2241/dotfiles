@@ -100,8 +100,19 @@ return (
 );
 ```
 
+## 4. Keep frontend lint green
+
+Before finalizing or pushing any frontend change, run the recursive frontend lint command:
+
+```bash
+direnv exec <worktree> bash -c 'cd frontend && pnpm run -r --no-bail --workspace-concurrency 1 lint'
+```
+
+Fix every lint error before pushing. Do not rely on `tsgo`, `ReadLints`, `prettier`, or `lint:fix` alone; they can miss repo-wide ESLint failures such as duplicate imports and unused imports introduced during follow-up review fixes.
+
 ## Common Mistakes
 
 - Using `&&` for "simple" one-liners -- the rule applies regardless of element complexity
 - Defining `renderX` as arrow functions inside a component -- extract to a named component
 - Using ternaries to toggle between two components -- use if/else blocks instead
+- Pushing after only `tsgo` or editor lints. Run the recursive frontend lint command after the final diff.

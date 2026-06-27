@@ -35,7 +35,38 @@ alias gis='git status'
 alias gid='git diff -C --date=local'
 alias gic='git checkout'
 alias gib='git branch'
-alias gibs='(echo " |BRANCH|MESSAGE|UPDATED"; git for-each-ref --sort=committerdate refs/heads/ --format="%(if)%(HEAD)%(then)*%(else) %(end)|%(refname:short)|%(subject)|%(committerdate:relative)") | column -t -s"|" | awk "BEGIN{GRN=sprintf(\"%c[1;32m\",27);RST=sprintf(\"%c[0m\",27)} NR==1{print;next} \$1==\"*\"{print GRN \$0 RST; next} {print}"'
+gibs() {
+    local header format message_width
+
+    case "$1" in
+        -v|--verbose)
+            header=" |BRANCH|MESSAGE|UPDATED"
+            format="%(if)%(HEAD)%(then)*%(else)%(if)%(worktreepath)%(then)+%(else) %(end)%(end)|%(refname:short)|%(subject)|%(committerdate:relative)"
+            message_width=0
+            ;;
+        -h|--help)
+            echo "Usage: gibs [-v|--verbose]"
+            echo
+            echo "Shows local branches with truncated latest commit messages."
+            echo "  -v, --verbose  show full commit messages"
+            return 0
+            ;;
+        "")
+            header=" |BRANCH|MESSAGE|UPDATED"
+            format="%(if)%(HEAD)%(then)*%(else)%(if)%(worktreepath)%(then)+%(else) %(end)%(end)|%(refname:short)|%(subject)|%(committerdate:relative)"
+            message_width=48
+            ;;
+        *)
+            echo "Usage: gibs [-v|--verbose]" >&2
+            return 2
+            ;;
+    esac
+
+    (printf '%s\n' "$header"; git for-each-ref --sort=committerdate refs/heads/ --format="$format") |
+        awk -F"|" -v max="$message_width" 'BEGIN{OFS=FS} NR > 1 && max > 0 && length($3) > max {$3=substr($3, 1, max - 3) "..."} {print}' |
+        column -t -s"|" |
+        awk 'BEGIN{GRN=sprintf("%c[1;32m",27);CYN=sprintf("%c[1;36m",27);RST=sprintf("%c[0m",27)} NR==1{print;next} $1=="*"{print GRN $0 RST; next} $1=="+"{print CYN $0 RST; next} {print}'
+}
 alias gicm='git commit -m'
 alias gicc='git commit -am "CHECKPOINT"'
 
@@ -226,15 +257,53 @@ worktree-rm() {
     return 1
   fi
 
-  local repo_name=$(basename "$(git rev-parse --show-toplevel)")
-  local dir_name="${branch//\//-}"
-  local worktree_path="../${repo_name}-${dir_name}"
+  local worktree_path
+  worktree_path=$(git worktree list --porcelain | awk -v branch="$branch" '
+    BEGIN { RS=""; FS="\n" }
+    {
+      path = ""
+      found = 0
+      for (i = 1; i <= NF; i++) {
+        if ($i ~ /^worktree /) path = substr($i, 10)
+        if ($i == "branch refs/heads/" branch) found = 1
+      }
+      if (found) {
+        print path
+        exit
+      }
+    }
+  ')
 
-  if [ ! -d "$worktree_path" ]; then
-    _error "Worktree not found at $worktree_path"
+  if [ -z "$worktree_path" ]; then
+    _error "No worktree found for branch: $branch"
     _info "Available worktrees:"
     git worktree list
     return 1
+  fi
+
+  local main_worktree_path
+  main_worktree_path=$(git worktree list --porcelain | awk '
+    BEGIN { RS=""; FS="\n" }
+    NR == 1 {
+      for (i = 1; i <= NF; i++) {
+        if ($i ~ /^worktree /) {
+          print substr($i, 10)
+          exit
+        }
+      }
+    }
+  ')
+
+  if [ "$worktree_path" = "$main_worktree_path" ]; then
+    _error "Refusing to remove main worktree: $worktree_path"
+    return 1
+  fi
+
+  local current_worktree_path
+  current_worktree_path=$(git rev-parse --show-toplevel)
+  if [ "$current_worktree_path" = "$worktree_path" ]; then
+    _info "Moving to main worktree before removing current directory"
+    cd "$main_worktree_path" || return 1
   fi
 
   local rm_args=("$worktree_path")
@@ -244,8 +313,8 @@ worktree-rm() {
     branch_args=(-D "$branch")
   fi
 
-  git worktree remove "${rm_args[@]}" && \
-    git branch "${branch_args[@]}" && \
+  git -C "$main_worktree_path" worktree remove "${rm_args[@]}" && \
+    git -C "$main_worktree_path" branch "${branch_args[@]}" && \
     _ok "Removed worktree and branch: $branch"
 }
 
