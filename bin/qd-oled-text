@@ -1,0 +1,339 @@
+#!/usr/bin/env bash
+# qd-oled-text — toggle QD-OLED text fringing fixes
+#
+# Usage:
+#   qd-oled-text            # toggle (flip current state)
+#   qd-oled-text enable     # apply all fixes
+#   qd-oled-text disable    # restore defaults
+#   qd-oled-text status     # show current state
+#
+# Display scaling: 2× integer (3840×2160 → 1920×1080 logical) — set in GNOME Settings.
+# Text scaling:    0.75 (brings text back to the same physical size as 1.5× default).
+
+set -euo pipefail
+
+# ── paths ────────────────────────────────────────────────────────────────────
+
+FONTCONFIG="$HOME/.config/fontconfig/fonts.conf"
+FIREFOX_DIR="$HOME/snap/firefox/common/.mozilla/firefox"
+VSCODE_ARGV="$HOME/.vscode/argv.json"
+CURSOR_ARGV="$HOME/.cursor/argv.json"
+CHROME_SRC="/usr/share/applications/google-chrome.desktop"
+CHROME_DST="$HOME/.local/share/applications/google-chrome.desktop"
+SLACK_DST="$HOME/.local/share/applications/slack.desktop"
+SLACK_BIN="/usr/bin/slack"
+CHROME_WRAPPER="$HOME/.local/bin/google-chrome-stable"
+CHROME_WRAPPER_ALT="$HOME/.local/bin/google-chrome"
+SLACK_WRAPPER="$HOME/.local/bin/slack"
+
+# ── colours ──────────────────────────────────────────────────────────────────
+
+bold()   { printf '\033[1m%s\033[0m' "$*"; }
+green()  { printf '\033[32m%s\033[0m' "$*"; }
+yellow() { printf '\033[33m%s\033[0m' "$*"; }
+dim()    { printf '\033[2m%s\033[0m' "$*"; }
+tick()   { printf '  %s %s\n' "$(green '✓')" "$*"; }
+ring()   { printf '  %s %s\n' "$(yellow '○')" "$*"; }
+
+# ── state detection ──────────────────────────────────────────────────────────
+
+is_enabled() {
+    [[ "$(gsettings get org.gnome.desktop.interface font-antialiasing 2>/dev/null)" == "'grayscale'" ]]
+}
+
+firefox_profile() {
+    # Return the first real profile dir that exists, empty string if none
+    find "$FIREFOX_DIR" -maxdepth 1 -name '*.default*' -type d 2>/dev/null | head -1
+}
+
+# ── individual fixers ─────────────────────────────────────────────────────────
+
+apply_fontconfig() {
+    mkdir -p "$(dirname "$FONTCONFIG")"
+    cat > "$FONTCONFIG" << 'XML'
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <!--
+    QD-OLED panels (e.g. Samsung Odyssey G80SD) use a non-RGB-stripe subpixel
+    layout. Grayscale antialiasing avoids colour fringing. Hintslight keeps
+    shapes crisp without over-sharpening at small sizes.
+  -->
+  <match target="font">
+    <edit name="antialias"  mode="assign"><bool>true</bool></edit>
+    <edit name="rgba"       mode="assign"><const>none</const></edit>
+    <edit name="lcdfilter"  mode="assign"><const>lcdnone</const></edit>
+    <edit name="hinting"    mode="assign"><bool>true</bool></edit>
+    <edit name="hintstyle"  mode="assign"><const>hintslight</const></edit>
+  </match>
+</fontconfig>
+XML
+    fc-cache -f "$HOME/.config/fontconfig/" 2>/dev/null
+}
+
+remove_fontconfig() {
+    rm -f "$FONTCONFIG"
+    fc-cache -f 2>/dev/null
+}
+
+apply_firefox() {
+    local profile
+    profile=$(firefox_profile) || true
+    [[ -z "$profile" ]] && return 0
+    cat > "$profile/user.js" << 'JS'
+// QD-OLED text fringing fix — applied on every Firefox startup.
+user_pref("gfx.text.subpixel-position.force-enabled", false);
+user_pref("gfx.webrender.quality.force-subpixel-aa-where-possible", false);
+JS
+}
+
+remove_firefox() {
+    local profile
+    profile=$(firefox_profile) || true
+    [[ -z "$profile" ]] && return 0
+    rm -f "$profile/user.js"
+}
+
+# Toggle "disable-lcd-text" in a VS Code–style argv.json (JSONC with // comments).
+# Arg 1: path, Arg 2: "true" or "false"
+apply_argv() {
+    local path="$1" enable="$2"
+    [[ -f "$path" ]] || return 0
+    python3 - "$path" "$enable" << 'PY'
+import sys, re
+
+path, enable = sys.argv[1], sys.argv[2] == "true"
+FLAG_KEY  = '"disable-lcd-text"'
+OUR_COMMENT = '// QD-OLED fix'
+
+with open(path, 'r') as f:
+    lines = f.readlines()
+
+# Strip our previous additions (flag line + our comment + preceding blank line).
+cleaned = []
+for line in lines:
+    if OUR_COMMENT in line or FLAG_KEY in line:
+        if cleaned and cleaned[-1].strip() == '':
+            cleaned.pop()
+        continue
+    cleaned.append(line)
+
+content = ''.join(cleaned)
+
+# Fix any trailing comma left on the last real property before '}'.
+content = re.sub(r',(\s*\n\})', r'\1', content)
+
+if enable:
+    insertion = (
+        ',\n'
+        '\n'
+        '\t// QD-OLED fix: disable LCD subpixel text rendering.\n'
+        '\t"disable-lcd-text": true'
+    )
+    # Insert after the last value line before the closing '}'.
+    content = re.sub(r'(\n\t"[^/][^"]*":\s*[^\n]+)(\n\})', r'\1' + insertion + r'\2', content)
+
+with open(path, 'w') as f:
+    f.write(content)
+PY
+}
+
+apply_chrome() {
+    # 1. Create the local bin wrapper scripts
+    mkdir -p "$(dirname "$CHROME_WRAPPER")"
+    cat > "$CHROME_WRAPPER" << 'EOF'
+#!/usr/bin/env bash
+# QD-OLED optimized Google Chrome launcher (System Default platform + Grayscale Font AA)
+exec /usr/bin/google-chrome-stable \
+  --disable-lcd-text \
+  --font-render-hinting=none \
+  "$@"
+EOF
+    chmod +x "$CHROME_WRAPPER"
+    ln -sf google-chrome-stable "$CHROME_WRAPPER_ALT"
+
+    # 2. Point user desktop launcher to our wrapper script
+    if [[ -f "$CHROME_SRC" ]]; then
+        cp "$CHROME_SRC" "$CHROME_DST"
+        sed -i 's|Exec=/usr/bin/google-chrome-stable|Exec=/home/jchi/.local/bin/google-chrome-stable|g' "$CHROME_DST"
+    fi
+    update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null
+}
+
+remove_chrome() {
+    rm -f "$CHROME_WRAPPER"
+    rm -f "$CHROME_WRAPPER_ALT"
+    rm -f "$CHROME_DST"
+    update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null
+}
+
+apply_slack() {
+    [[ -f "$SLACK_BIN" ]] || return 0
+    # 1. Create the local bin wrapper script
+    mkdir -p "$(dirname "$SLACK_WRAPPER")"
+    cat > "$SLACK_WRAPPER" << 'EOF'
+#!/usr/bin/env bash
+# QD-OLED optimized Slack launcher (System Default platform + Grayscale Font AA)
+exec /usr/bin/slack \
+  --disable-lcd-text \
+  --font-render-hinting=none \
+  "$@"
+EOF
+    chmod +x "$SLACK_WRAPPER"
+
+    # 2. Build desktop override from system file if available, pointing to our wrapper
+    if [[ -f /usr/share/applications/slack.desktop ]]; then
+        cp /usr/share/applications/slack.desktop "$SLACK_DST"
+        sed -i 's|Exec=/usr/bin/slack|Exec=/home/jchi/.local/bin/slack|g' "$SLACK_DST"
+    else
+        cat > "$SLACK_DST" << 'EOF'
+[Desktop Entry]
+Name=Slack
+StartupWMClass=Slack
+Comment=Slack Desktop
+GenericName=Slack Client for Linux
+Exec=/home/jchi/.local/bin/slack %U
+Icon=/usr/share/pixmaps/slack.png
+Type=Application
+StartupNotify=true
+Categories=GNOME;GTK;Network;InstantMessaging;
+MimeType=x-scheme-handler/slack;
+EOF
+    fi
+    update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null
+}
+
+remove_slack() {
+    rm -f "$SLACK_WRAPPER"
+    rm -f "$SLACK_DST"
+    update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null
+}
+
+# ── high-level actions ────────────────────────────────────────────────────────
+
+do_enable() {
+    echo "$(bold 'Enabling QD-OLED text fringing fixes...')"
+
+    gsettings set org.gnome.desktop.interface font-antialiasing 'grayscale'
+    gsettings set org.gnome.desktop.interface font-hinting 'slight'
+    gsettings set org.gnome.desktop.interface text-scaling-factor 0.75
+    tick "GNOME: font-antialiasing=grayscale, hinting=slight, text-scale=0.75"
+
+    apply_fontconfig
+    tick "fontconfig: rgba=none, lcdfilter=none, hintslight"
+
+    if [[ -n "$(firefox_profile 2>/dev/null)" ]]; then
+        apply_firefox
+        tick "Firefox: subpixel AA prefs disabled via user.js"
+    else
+        dim "  — Firefox profile not found, skipping"
+        echo
+    fi
+
+    apply_argv "$VSCODE_ARGV" true && tick "VS Code: disable-lcd-text=true"
+    apply_argv "$CURSOR_ARGV" true && tick "Cursor:  disable-lcd-text=true"
+
+    apply_chrome && tick "Chrome:  Default platform + Grayscale wrappers & desktop"
+    apply_slack  && tick "Slack:   Default platform + Grayscale wrapper & desktop"
+
+    echo
+    echo "$(bold 'Done.') Restart Firefox, Chrome, Slack, VS Code, and Cursor to apply."
+}
+
+do_disable() {
+    echo "$(bold 'Disabling QD-OLED text fringing fixes (restoring defaults)...')"
+
+    gsettings set org.gnome.desktop.interface font-antialiasing 'rgba'
+    gsettings set org.gnome.desktop.interface font-hinting 'slight'
+    gsettings set org.gnome.desktop.interface text-scaling-factor 1.0
+    ring "GNOME: font-antialiasing=rgba (default), text-scale=1.0"
+
+    remove_fontconfig
+    ring "fontconfig: custom file removed"
+
+    remove_firefox
+    ring "Firefox: user.js removed"
+
+    apply_argv "$VSCODE_ARGV" false && ring "VS Code: disable-lcd-text removed"
+    apply_argv "$CURSOR_ARGV" false && ring "Cursor:  disable-lcd-text removed"
+
+    remove_chrome && ring "Chrome:  wrapper & desktop overrides removed"
+    remove_slack  && ring "Slack:   wrapper & desktop overrides removed"
+
+    echo
+    echo "$(bold 'Done.') Restart apps to apply."
+}
+
+do_status() {
+    local state
+    if is_enabled; then
+        state="$(green 'ENABLED')"
+    else
+        state="$(yellow 'DISABLED')"
+    fi
+    echo "$(bold 'QD-OLED text fixes:') $state"
+    echo
+
+    local aa hint scale
+    aa=$(gsettings get org.gnome.desktop.interface font-antialiasing 2>/dev/null)
+    hint=$(gsettings get org.gnome.desktop.interface font-hinting 2>/dev/null)
+    scale=$(gsettings get org.gnome.desktop.interface text-scaling-factor 2>/dev/null)
+    printf '  %-28s %s\n' "GNOME antialiasing" "$aa"
+    printf '  %-28s %s\n' "GNOME hinting" "$hint"
+    printf '  %-28s %s\n' "GNOME text-scaling-factor" "$scale"
+
+    if [[ -f "$FONTCONFIG" ]]; then
+        printf '  %-28s %s\n' "fontconfig" "$(green 'custom (rgba=none)')"
+    else
+        printf '  %-28s %s\n' "fontconfig" "$(dim 'default (no custom file)')"
+    fi
+
+    local prof
+    prof=$(firefox_profile 2>/dev/null) || true
+    if [[ -n "$prof" && -f "$prof/user.js" ]]; then
+        printf '  %-28s %s\n' "Firefox user.js" "$(green 'present')"
+    else
+        printf '  %-28s %s\n' "Firefox user.js" "$(dim 'absent')"
+    fi
+
+    for pair in "VS Code:$VSCODE_ARGV" "Cursor:$CURSOR_ARGV"; do
+        local label="${pair%%:*}" argvpath="${pair#*:}"
+        if [[ -f "$argvpath" ]] && grep -q '"disable-lcd-text"' "$argvpath" 2>/dev/null; then
+            printf '  %-28s %s\n' "$label argv.json" "$(green 'disable-lcd-text=true')"
+        else
+            printf '  %-28s %s\n' "$label argv.json" "$(dim 'default')"
+        fi
+    done
+
+    if [[ -f "$CHROME_WRAPPER" ]]; then
+        printf '  %-28s %s\n' "Chrome wrapper" "$(green 'active (System Default platform)')"
+    else
+        printf '  %-28s %s\n' "Chrome wrapper" "$(dim 'inactive')"
+    fi
+
+    if [[ -f "$SLACK_WRAPPER" ]]; then
+        printf '  %-28s %s\n' "Slack wrapper" "$(green 'active (System Default platform)')"
+    else
+        printf '  %-28s %s\n' "Slack wrapper" "$(dim 'inactive')"
+    fi
+}
+
+# ── entry point ───────────────────────────────────────────────────────────────
+
+case "${1:-toggle}" in
+    enable)  do_enable  ;;
+    disable) do_disable ;;
+    status)  do_status  ;;
+    toggle)
+        if is_enabled; then
+            do_disable
+        else
+            do_enable
+        fi
+        ;;
+    *)
+        echo "Usage: $(basename "$0") [enable|disable|status|toggle]"
+        echo "  toggle (default) — flip current state"
+        exit 1
+        ;;
+esac

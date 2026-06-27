@@ -36,6 +36,10 @@
         path: .config/ghostty/config
         create: true
         force: true
+    ~/.local/bin/qd-oled-text:
+        path: bin/qd-oled-text
+        create: true
+        force: true
 
     # Claude Code configuration
     ~/.claude/settings.json:
