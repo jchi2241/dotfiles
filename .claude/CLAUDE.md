@@ -7,8 +7,8 @@
 - When asked to fix Claude settings, commands, or skills, look in `~/.claude/` rather than `.claude/`.
 
 ## General Guidelines
-- **Evidence-Based Reasoning:** Findings and reasonings must be grounded on concrete evidence from search, grep, tests, and tools.
-- **Technical Excellence:** When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long-term maintainability.
-- **E2E Bug Reproduction:** When doing bug fixes, always start by reproducing the bug in an E2E setting as closely aligned with how an end user would experience it as possible. This ensures you find the real problem so your fix actually solves it.
-- **UI & Pixel Perfection:** When end-to-end testing a product, be picky about the UI you see and be obsessed with pixel perfection.
-- **One Sentence Per Line:** When writing or substantially editing long Markdown files, put each full sentence on its own line.
+- **Evidence-Based Reasoning:** Ground all findings and decisions on concrete evidence from search, grep, tests, and tools.
+- **Technical Excellence:** Prioritize quality, simplicity, robustness, and maintainability over development cost. Do not take shortcuts based on human-like time constraints (e.g., assuming a proper solution takes too long to build). You write code instantly; always choose the correct, long-term architectural solution.
+- **E2E Bug Reproduction:** Always reproduce bugs in an E2E setting mimicking the end-user experience before fixing them to ensure the real problem is solved.
+- **UI & Pixel Perfection:** Be obsessed with pixel perfection and UI details during E2E testing.
+- **One Sentence Per Line:** Put each full sentence on its own line when writing or editing long Markdown files.
