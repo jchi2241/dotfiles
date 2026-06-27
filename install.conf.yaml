@@ -46,6 +46,10 @@
         path: .claude/CLAUDE.md
         create: true
         force: true
+    ~/.claude/VOICE.md:
+        path: .claude/VOICE.md
+        create: true
+        force: true
     ~/.claude/hooks:
         path: .claude/hooks
         create: true

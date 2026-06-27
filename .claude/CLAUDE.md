@@ -1,5 +1,9 @@
 # Justin's Agent Instructions
 
+## Voice & Writing Style
+
+When writing anything on Justin's behalf (Slack messages, PRs, wiki pages, proposals), follow the profile in `~/.claude/VOICE.md`.
+
 ## System & Environment
 
 - jchi uses Linux (Ubuntu 24.04 LTS Noble) as their laptop OS. Tailor installation instructions and system-specific answers to Linux accordingly.
