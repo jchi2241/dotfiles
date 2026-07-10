@@ -5,7 +5,11 @@ description: Use when the user asks to run, babysit, or complete `init-analyst` 
 
 # Babysit init-analyst
 
-Run the first three steps of the `init-analyst` shell alias to completion, auto-recover from the common corrupted-postgres failure, and leave the local cluster in a state where the user can start `make frontend-start` themselves.
+Run the first three steps of the `init-analyst` shell alias to completion, auto-recover from failures (including tearing things down), and leave the local cluster in a state where the user can start `make frontend-start` themselves.
+
+## Operating principle: full agency, no asking
+
+Whenever the user runs this skill, they're OK with tearing everything down and starting over if that's what it takes. Tear down anything needed — the k3d cluster, docker containers/volumes/networks, stale port holders, pgdata, init-step markers — to get `kube-init` → `start-nova-workspace` → `setup-analyst` running successfully. Do not pause to ask for confirmation before destructive local-dev recovery actions (`make kube-delete`, `docker rm`/`docker kill`, deleting `~/.helios-pgdata`, restarting k3d nodes, killing processes holding ports, etc.). Announce what you're doing as you do it, then keep going. Only stop and surface the problem to the user when you hit something outside local Docker/k3d/postgres teardown (e.g. missing credentials, external service outage, disk full, an ambiguous choice with real consequences) or after retrying the same recovery twice without success.
 
 ## What init-analyst is
 
@@ -103,9 +107,9 @@ Why the init-step markers matter: `make kube-init` is idempotent via `scripts/in
 
 When in doubt, prefer the full `make kube-delete` path above — it's slower but doesn't leave stale bind mounts or stale markers.
 
-### Announce, don't silently nuke
+### Announce, don't ask
 
-Even though recovery is automated, tell the user *before* running it: "heliospg is corrupted (`could not locate a valid checkpoint record`), running nukefreyadb via docker." Then do it. This keeps them informed without blocking on a y/n.
+Even though recovery is automated, tell the user *before* running it: "heliospg is corrupted (`could not locate a valid checkpoint record`), running nukefreyadb via docker." Then do it immediately — this is a status update, not a request for permission. Never block on a y/n for local-dev teardown/recovery inside this skill.
 
 ## Other known failure signatures
 
@@ -124,11 +128,23 @@ This causes kube-init to re-run only the missing steps. It will also trigger Til
 
 Stale k3d bind mount after a nuke. See "The in-place variant" under nukefreyadb — the fix is to restart the k3d server node container.
 
+### `k3d cluster create` fails with "address already in use" / "failed to bind host port"
+
+k3d's loadbalancer or server node couldn't bind a host port (commonly a leftover `k3d-helios-infra-local-dev-serverlb`/`-server-0` container, or a stale socket from a previous rolled-back create). Recovery:
+
+```
+docker ps -a | grep -i helios          # find lingering k3d-helios-infra-local-dev-* containers
+docker rm -f <any matching containers>  # force-remove them
+direnv exec ~/projects/helios k3d cluster list  # confirm no stale cluster entry remains
+```
+
+If no lingering containers are found (k3d already rolled back the failed create itself), the port is usually just released within moments — retry `kube-init` directly. If the same port conflict repeats, find and kill whatever process/container is actually holding it (`ss -ltn`, `docker ps -a` for *any* container publishing that port, not just k3d-named ones) rather than giving up.
+
 ### Other failures
 
-For anything that doesn't match the signatures above, stop and surface the error to the user instead of guessing a recovery. Examples: images failing to pull, k3d unable to bind ports, disk full, kafka timing out. The skill's value is handling the common case cleanly; novel failures deserve human judgement.
+For failures that don't match a known signature above, still attempt reasonable local recovery yourself first: retry the failing step once, tear down and recreate the k3d cluster (`make kube-delete` + rerun `kube-init`) if state looks corrupted, or restart offending containers. Examples where retry/teardown is fair game: images failing to pull (retry, or restart docker), k3d unable to bind ports (see above), kafka timing out (restart the pod/cluster). Only stop and surface the raw error to the user when: disk is actually full, credentials/secrets are missing, the failure is external (e.g. upstream registry outage), or you've already retried the same recovery twice with no progress.
 
-If `setup-analyst` fails specifically, rerunning it is usually safe (it's mostly idempotent — creates publishers/versions by name). Mention that and let the user decide.
+If `setup-analyst` fails specifically, just rerun it — it's mostly idempotent (creates publishers/versions by name).
 
 ## Completion signal
 
