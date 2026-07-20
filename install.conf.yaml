@@ -40,6 +40,14 @@
         path: bin/qd-oled-text
         create: true
         force: true
+    ~/.local/bin/lofree-flow-lite-fix:
+        path: bin/lofree-flow-lite-fix
+        create: true
+        force: true
+    ~/.local/bin/alice80-via-udev:
+        path: bin/alice80-via-udev
+        create: true
+        force: true
 
     # Claude Code configuration
     ~/.claude/settings.json:

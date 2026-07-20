@@ -160,6 +160,7 @@ alias learns-pull="cd ${LEARNS_PATH} && git pull"
 export NOTES_PATH="~/Documents/notes"
 alias notes="vim ${NOTES_PATH}/notes.md"
 
+alias ucursor="sudo apt install cursor --only-upgrade"
 alias ucode="sudo apt install code --only-upgrade"
 alias uchrome="sudo apt install google-chrome-stable --only-upgrade"
 alias usnap="sudo snap refresh"

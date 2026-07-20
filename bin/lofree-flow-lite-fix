@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+# lofree-flow-lite-fix — fix Ctrl/Alt/Win and F-key behavior for the Lofree Flow
+# Lite keyboard's 2.4GHz dongle on Linux.
+#
+# Background: the Lofree Flow Lite's 2.4GHz dongle identifies itself to Linux
+# as a genuine Apple keyboard (USB ID 05ac:024f, "Aluminium Keyboard ANSI"), so
+# it gets handled by the kernel's hid_apple driver instead of a generic HID
+# driver. Two problems result from hid_apple's Mac-oriented defaults:
+#
+#   1. F1-F12 act as media/brightness keys by default instead of normal
+#      F-keys (fnmode).
+#   2. The physical Alt and Windows/Cmd keys are swapped: Alt sends the
+#      Super/Windows signal and Windows/Cmd sends Alt (swap_opt_cmd), because
+#      the driver assumes Mac "Option/Command" semantics for a keyboard that's
+#      physically laid out for Windows.
+#
+# /etc/modprobe.d alone isn't enough: on this system, hid_apple gets loaded at
+# boot by something that bypasses modprobe's normal config resolution (a
+# known quirk — confirmed by manually reloading the module, which correctly
+# picks up the config file, vs. its state right after boot, which doesn't).
+# So this script also installs a oneshot systemd service that reapplies the
+# fix live (sysfs + reprobe) on every boot, independent of how/when the
+# module actually got loaded.
+#
+# This only touches hid_apple's own module parameters (via /etc/modprobe.d,
+# live sysfs, and a dedicated systemd unit), so it's fully reversible and
+# doesn't touch xkb, GNOME settings, or anything specific to any other
+# keyboard you plug in.
+#
+# Usage:
+#   lofree-flow-lite-fix            # toggle (flip current state)
+#   lofree-flow-lite-fix enable     # apply the fix + make it boot-persistent
+#   lofree-flow-lite-fix disable    # revert to stock/default behavior
+#   lofree-flow-lite-fix status     # show current state
+#   lofree-flow-lite-fix apply-live # (internal) just reapply live values now — used by the systemd service
+
+set -euo pipefail
+
+CONF_FILE="/etc/modprobe.d/99-lofree-flow-lite.conf"
+SYSFS_DIR="/sys/module/hid_apple/parameters"
+SERVICE_FILE="/etc/systemd/system/lofree-flow-lite-fix.service"
+SELF_PATH="/home/jchi/.local/bin/lofree-flow-lite-fix"
+
+# Values applied by the fix.
+FIX_FNMODE=2        # F-keys act as F-keys by default; Fn+F-key = media/brightness
+FIX_SWAP_OPT_CMD=1  # un-swaps Alt and Windows/Cmd for a PC-style layout
+
+# Stock hid_apple kernel defaults, restored on disable.
+DEFAULT_FNMODE=3
+DEFAULT_SWAP_OPT_CMD=0
+
+bold()   { printf '\033[1m%s\033[0m' "$*"; }
+green()  { printf '\033[32m%s\033[0m' "$*"; }
+yellow() { printf '\033[33m%s\033[0m' "$*"; }
+dim()    { printf '\033[2m%s\033[0m' "$*"; }
+tick()   { printf '  %s %s\n' "$(green '✓')" "$*"; }
+ring()   { printf '  %s %s\n' "$(yellow '○')" "$*"; }
+
+is_enabled() {
+    [[ -f "$CONF_FILE" ]]
+}
+
+service_active() {
+    systemctl is-enabled --quiet lofree-flow-lite-fix.service 2>/dev/null
+}
+
+reprobe_apple_devices() {
+    local driver_dir="/sys/bus/hid/drivers/apple"
+    [[ -d "$driver_dir" ]] || return 0
+    local path id matched=0
+    for path in "$driver_dir"/*:*; do
+        [[ -e "$path" ]] || continue
+        matched=1
+        id="$(basename "$path")"
+        echo "$id" | sudo tee "$driver_dir/unbind" >/dev/null 2>&1 || true
+        sleep 0.2
+        echo "$id" | sudo tee "$driver_dir/bind" >/dev/null 2>&1 || true
+    done
+    [[ "$matched" == "1" ]]
+}
+
+write_service_file() {
+    sudo tee "$SERVICE_FILE" >/dev/null <<EOF
+[Unit]
+Description=Reapply Lofree Flow Lite keyboard key mapping fix (hid_apple)
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=${SELF_PATH} apply-live
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+show_status() {
+    echo "$(bold "Lofree Flow Lite fix"):"
+    if is_enabled; then
+        tick "Config file present ($CONF_FILE)"
+    else
+        ring "Config file absent — fix not installed"
+    fi
+    if service_active; then
+        tick "systemd service enabled — will reapply automatically on every boot"
+    else
+        ring "systemd service not enabled — fix may not survive a reboot"
+    fi
+    if [[ -d "$SYSFS_DIR" ]]; then
+        local fnmode swap_opt_cmd
+        fnmode="$(cat "$SYSFS_DIR/fnmode" 2>/dev/null || echo '?')"
+        swap_opt_cmd="$(cat "$SYSFS_DIR/swap_opt_cmd" 2>/dev/null || echo '?')"
+        echo "  Live sysfs values: fnmode=${fnmode} swap_opt_cmd=${swap_opt_cmd}"
+        if [[ "$fnmode" == "$FIX_FNMODE" && "$swap_opt_cmd" == "$FIX_SWAP_OPT_CMD" ]]; then
+            tick "Currently ACTIVE on the connected keyboard"
+        else
+            ring "Currently NOT active on the connected keyboard"
+        fi
+    else
+        dim "  hid_apple module isn't loaded right now (no Apple-ID keyboard connected)\n"
+    fi
+}
+
+# Just (re)apply the live sysfs values + reprobe. Safe to call anytime,
+# including from the systemd service at boot.
+apply_live() {
+    if [[ -d "$SYSFS_DIR" ]]; then
+        echo "$FIX_FNMODE" | sudo tee "$SYSFS_DIR/fnmode" >/dev/null
+        echo "$FIX_SWAP_OPT_CMD" | sudo tee "$SYSFS_DIR/swap_opt_cmd" >/dev/null
+        reprobe_apple_devices || true
+    fi
+}
+
+revert_live() {
+    if [[ -d "$SYSFS_DIR" ]]; then
+        echo "$DEFAULT_FNMODE" | sudo tee "$SYSFS_DIR/fnmode" >/dev/null
+        echo "$DEFAULT_SWAP_OPT_CMD" | sudo tee "$SYSFS_DIR/swap_opt_cmd" >/dev/null
+        reprobe_apple_devices || true
+    fi
+}
+
+do_enable() {
+    echo "options hid_apple fnmode=${FIX_FNMODE} swap_opt_cmd=${FIX_SWAP_OPT_CMD}" | sudo tee "$CONF_FILE" >/dev/null
+    tick "Wrote $CONF_FILE"
+
+    write_service_file
+    sudo systemctl daemon-reload
+    sudo systemctl enable lofree-flow-lite-fix.service >/dev/null 2>&1
+    tick "Installed and enabled lofree-flow-lite-fix.service (reapplies on every boot)"
+
+    if [[ -d "$SYSFS_DIR" ]]; then
+        apply_live
+        tick "Applied live via sysfs and reprobed the connected keyboard"
+    else
+        ring "Keyboard not connected right now — fix will apply next time it connects or on next boot"
+    fi
+    echo ""
+    echo "Done. F1-F12 now act as normal function keys (hold Fn for media/brightness),"
+    echo "and the Alt / Windows keys should be correctly mapped — now and after reboot."
+}
+
+do_disable() {
+    if [[ -f "$CONF_FILE" ]]; then
+        sudo rm -f "$CONF_FILE"
+        tick "Removed $CONF_FILE"
+    else
+        ring "$CONF_FILE was already absent"
+    fi
+
+    if systemctl list-unit-files lofree-flow-lite-fix.service >/dev/null 2>&1; then
+        sudo systemctl disable --now lofree-flow-lite-fix.service >/dev/null 2>&1 || true
+        sudo rm -f "$SERVICE_FILE"
+        sudo systemctl daemon-reload
+        tick "Removed and disabled lofree-flow-lite-fix.service"
+    fi
+
+    revert_live
+    tick "Restored default sysfs values and reprobed the connected keyboard"
+    echo ""
+    echo "Done. Reverted to stock Linux/hid_apple behavior — now and after reboot."
+}
+
+case "${1:-toggle}" in
+    enable)     do_enable ;;
+    disable)    do_disable ;;
+    status)     show_status ;;
+    apply-live) apply_live ;;
+    toggle)
+        if is_enabled; then do_disable; else do_enable; fi
+        ;;
+    *)
+        echo "Usage: $(basename "$0") [enable|disable|status]" >&2
+        exit 1
+        ;;
+esac

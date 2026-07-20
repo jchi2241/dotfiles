@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+# alice80-via-udev — grant Chrome/VIA WebHID access to the Feker Alice80 on Linux.
+#
+# Background: the Alice80 exposes a QMK/VIA raw-HID interface (usage page
+# 0xFF60), but on Linux those /dev/hidraw* nodes default to root:root mode
+# 0600. Chrome can still list the device in the WebHID picker, yet VIA fails
+# with "device is not compatible" because it can't open the raw channel.
+#
+# This installs a scoped udev rule for USB ID 36b0:305f only. Other keyboards
+# are unaffected, so you usually don't need to disable this when swapping
+# boards — but disable is here if you want a clean revert.
+#
+# Usage:
+#   alice80-via-udev            # toggle (flip current state)
+#   alice80-via-udev enable     # install udev rule + apply to live devices
+#   alice80-via-udev disable    # remove udev rule + restore root-only perms
+#   alice80-via-udev status     # show current state
+
+set -euo pipefail
+
+RULE_FILE="/etc/udev/rules.d/99-alice80-via.rules"
+VENDOR_ID="36b0"
+PRODUCT_ID="305f"
+GROUP_NAME="plugdev"
+
+bold()   { printf '\033[1m%s\033[0m' "$*"; }
+green()  { printf '\033[32m%s\033[0m' "$*"; }
+yellow() { printf '\033[33m%s\033[0m' "$*"; }
+dim()    { printf '\033[2m%s\033[0m' "$*"; }
+tick()   { printf '  %s %s\n' "$(green '✓')" "$*"; }
+ring()   { printf '  %s %s\n' "$(yellow '○')" "$*"; }
+
+is_enabled() {
+    [[ -f "$RULE_FILE" ]]
+}
+
+alice80_hidraw_nodes() {
+    local node uevent
+    for node in /dev/hidraw*; do
+        [[ -e "$node" ]] || continue
+        uevent="$(cat "/sys/class/hidraw/$(basename "$node")/device/uevent" 2>/dev/null || true)"
+        # HID_ID looks like 0003:000036B0:0000305F
+        if [[ "$uevent" == *"000036B0:0000305F"* ]]; then
+            printf '%s\n' "$node"
+        fi
+    done
+}
+
+keyboard_connected() {
+    lsusb -d "${VENDOR_ID}:${PRODUCT_ID}" >/dev/null 2>&1
+}
+
+reload_udev() {
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger --subsystem-match=hidraw --attr-match=idVendor="$VENDOR_ID" --attr-match=idProduct="$PRODUCT_ID" 2>/dev/null \
+        || sudo udevadm trigger --subsystem-match=hidraw
+}
+
+apply_live_access() {
+    local node
+    while IFS= read -r node; do
+        sudo chmod 0660 "$node"
+        sudo chgrp "$GROUP_NAME" "$node"
+        tick "Opened access on $node"
+    done < <(alice80_hidraw_nodes)
+}
+
+restore_live_access() {
+    local node
+    while IFS= read -r node; do
+        sudo chmod 0600 "$node"
+        sudo chown root:root "$node"
+        tick "Restored root-only perms on $node"
+    done < <(alice80_hidraw_nodes)
+}
+
+show_status() {
+    echo "$(bold "Alice80 VIA udev access"):"
+    if is_enabled; then
+        tick "Rule present ($RULE_FILE)"
+    else
+        ring "Rule absent — VIA WebHID access not installed"
+    fi
+
+    if keyboard_connected; then
+        tick "Alice80 connected (USB ${VENDOR_ID}:${PRODUCT_ID})"
+    else
+        ring "Alice80 not connected right now"
+    fi
+
+    local node perms group readable=0 total=0
+    while IFS= read -r node; do
+        total=$((total + 1))
+        perms="$(stat -c '%a' "$node" 2>/dev/null || echo '?')"
+        group="$(stat -c '%G' "$node" 2>/dev/null || echo '?')"
+        if [[ -r "$node" && -w "$node" ]]; then
+            readable=$((readable + 1))
+            tick "$node mode=${perms} group=${group} (user can r/w)"
+        else
+            ring "$node mode=${perms} group=${group} (user cannot r/w)"
+        fi
+    done < <(alice80_hidraw_nodes)
+
+    if [[ "$total" -eq 0 ]]; then
+        dim "  No Alice80 hidraw nodes currently present\n"
+    elif [[ "$readable" -eq "$total" ]]; then
+        tick "VIA should be able to talk to the keyboard"
+    else
+        ring "Some interfaces are still closed — try: alice80-via-udev enable"
+    fi
+}
+
+do_enable() {
+    sudo tee "$RULE_FILE" >/dev/null <<EOF
+# Feker Alice80 (RDMCTMZT) — allow VIA / WebHID access to raw HID interfaces.
+# Scoped to USB ${VENDOR_ID}:${PRODUCT_ID}; other keyboards are unaffected.
+KERNEL=="hidraw*", ATTRS{idVendor}=="${VENDOR_ID}", ATTRS{idProduct}=="${PRODUCT_ID}", MODE="0660", GROUP="${GROUP_NAME}", TAG+="uaccess"
+EOF
+    tick "Wrote $RULE_FILE"
+
+    reload_udev
+    tick "Reloaded udev rules"
+
+    if keyboard_connected; then
+        apply_live_access
+        if ! alice80_hidraw_nodes | head -1 | grep -q .; then
+            ring "No hidraw nodes found yet — unplug/replug the keyboard once"
+        fi
+    else
+        ring "Keyboard not connected — rule will apply on next plug-in"
+    fi
+
+    echo ""
+    echo "Done. Reload https://www.usevia.app/ and authorize the Alice80 again."
+    echo "Disable later with: alice80-via-udev disable"
+}
+
+do_disable() {
+    if [[ -f "$RULE_FILE" ]]; then
+        sudo rm -f "$RULE_FILE"
+        tick "Removed $RULE_FILE"
+    else
+        ring "$RULE_FILE was already absent"
+    fi
+
+    reload_udev
+    tick "Reloaded udev rules"
+
+    if keyboard_connected; then
+        restore_live_access
+    else
+        ring "Keyboard not connected — nothing live to restore"
+    fi
+
+    echo ""
+    echo "Done. Alice80 hidraw access reverted to stock root-only permissions."
+}
+
+case "${1:-toggle}" in
+    enable)  do_enable ;;
+    disable) do_disable ;;
+    status)  show_status ;;
+    toggle)
+        if is_enabled; then do_disable; else do_enable; fi
+        ;;
+    *)
+        echo "Usage: $(basename "$0") [enable|disable|status]" >&2
+        exit 1
+        ;;
+esac
