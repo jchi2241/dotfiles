@@ -48,6 +48,10 @@
         path: bin/alice80-via-udev
         create: true
         force: true
+    ~/.local/bin/yuchichi-wifi-fix:
+        path: bin/yuchichi-wifi-fix
+        create: true
+        force: true
 
     # Claude Code configuration
     ~/.claude/settings.json:
