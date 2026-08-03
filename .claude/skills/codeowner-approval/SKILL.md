@@ -52,7 +52,9 @@ hi team, can i get codeowner approval for a portal admin change? fixes search on
 ## Link Rules
 
 - Use markdown links: `[title](url)`. The Slack MCP tool renders markdown — it does **not** accept Slack's raw `<url|title>` or `url|title` syntax.
-- Use the PR title verbatim **except** strip the trailing `#closes` directive (keep the `MCDB-NNNNN` ID if the title has one).
+- Use the PR title verbatim **except**:
+  - strip the trailing `#closes` directive
+  - strip any `MCDB-NNNNN` (or similar) Jira ticket key from the linked title — shiproom readers don't need it; the PR link is enough
 - Never put the bare URL and the title on separate lines.
 
 ## Follow-up
@@ -64,7 +66,7 @@ The Slack MCP server has no edit or delete tool. A wrong message can't be fixed 
 | Mistake | Fix |
 |---------|-----|
 | Posting `url\|title` | Use `[title](url)` markdown |
-| Leaving `#closes` in the linked title | Strip it; keep the Jira ID |
+| Leaving `#closes` or `MCDB-NNNNN` in the linked title | Strip both; the PR URL is enough |
 | Formal/capitalized phrasing | Match the user's lowercase, short style |
 | Sending before the user approves the text | Always show the draft and wait |
 | Asking for approval while CI is red or threads are unresolved | Confirm with the user first |
