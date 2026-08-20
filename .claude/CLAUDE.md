@@ -2,7 +2,7 @@
 
 ## Voice & Writing Style
 
-When writing anything on Justin's behalf (Slack messages, PRs, wiki pages, proposals), follow the profile in `~/.claude/VOICE.md`.
+When writing anything on Justin's behalf (Slack messages, PRs, GitHub review comments, wiki pages, proposals), follow the profile in `~/.claude/VOICE.md`.
 
 ## System & Environment
 

@@ -75,8 +75,32 @@ yep that's the plan.
 
 - Still lowercase for comments/short responses
 - Technical context first, no fluffy summary
-- Review comments: "approved w/ some nits", "added some comments", "can you allow suggestions / comments"
 - Keep description concise; let the code speak; link to tickets/designs
+
+## GitHub review comments
+
+These go out as Justin. Follow [conventionalcomments.org](https://conventionalcomments.org/) for the label, then core rules for the body. Inline on the diff -- not a top-level review essay. See `conventional-comments`.
+
+- `issue (blocking):` merge blockers (broken tests, real bugs)
+- `nit (non-blocking):` leftover names/copy. author can ignore
+- `suggestion` / `question` as needed
+- subject is the whole point; extra body only if the subject isnt enough
+- asks: `can we …`, `rather than …`, `any reason we …`
+- no bot tone: "Great catch", "Consider whether you might want to", "This is a medium-risk change"
+
+```
+**issue (blocking):** `creator-mode-sidebar-navigation.spec.tsx` still asserts the old IA
+
+it's still looking for Build/Governance and the old routes. test-frontend-cct is already red. can we update the spec in this PR rather than further up the stack?
+```
+
+```
+**nit (non-blocking):** copy still says context
+
+this page is instructions now, so "manage context" reads like it belongs on Learned Context
+```
+
+Slack-side after commenting: `added some comments` or `approved w/ some nits`
 
 ---
 
