@@ -1,48 +1,29 @@
 ---
-title: yuchichi Wi-Fi password-prompt loop on ThinkPad P16s MT7925
-summary: MT7925 4-way handshake timeouts were misreported as a wrong password; mitigated with ASPM off, Wi-Fi powersave off, PMF off, and a 2.4 GHz band lock.
+title: yuchichi Wi-Fi password-prompt loop on ThinkPad P16s MT7925 (superseded)
+summary: SUPERSEDED 2026-08-20. Original mitigation locked yuchichi to 2.4 GHz for handshake stability. Prefer the current fix (5 GHz + auth-retries=10) in the Aug 20 note.
 symptoms:
   - NetworkManager repeatedly re-asks for the yuchichi Wi-Fi password
   - Logs show reason=15 (4WAY_HANDSHAKE_TIMEOUT) then "pre-shared key may be incorrect"
   - Same PSK connects successfully on a later retry
   - Failures common on 5/6 GHz BSSIDs; 2.4 GHz stable
-root_cause: MediaTek mt7925e + tri-band AP handshake instability (ASPM / powersave / WPA3-FT path), not an incorrect password.
-fix: Run yuchichi-wifi-fix (disable_aspm, global powersave=2, profile band=bg + powersave/pmf off).
-tags: [wifi, mt7925, mt7925e, networkmanager, yuchichi, thinkpad, aspm, powersave, wpa]
+root_cause: MediaTek mt7925e + tri-band AP handshake instability; first EAPOL on 5/6 GHz often dropped. Not an incorrect password.
+fix: SUPERSEDED — use yuchichi-wifi-fix with band=a and auth-retries=10 (see 2026-08-20 note). Historical apply used band=bg.
+tags: [wifi, mt7925, mt7925e, networkmanager, yuchichi, thinkpad, aspm, powersave, wpa, superseded]
 date: 2026-07-29
 ---
 
-# yuchichi Wi-Fi password-prompt loop (MT7925)
+# yuchichi Wi-Fi password-prompt loop (MT7925) — superseded
 
-## Symptoms
+**Superseded 2026-08-20.** The 2.4 GHz band lock (`band=bg`) stopped the password-prompt loop but capped throughput at ~30–40 Mbps. Current fix prefers 5 GHz and lets NetworkManager retry the stored PSK silently:
 
-- Password dialog loops for SSID `yuchichi`
-- `wpa_supplicant`: `reason=15` then `WRONG_KEY`
-- NetworkManager: `asking for new key` even when secrets exist
+→ [`2026-08-20_yuchichi-wifi-slow-on-mt7925-5ghz-auth-retries.md`](./2026-08-20_yuchichi-wifi-slow-on-mt7925-5ghz-auth-retries.md)
 
-## Root cause
-
-False "wrong key" from **4-way handshake timeouts** on MediaTek `mt7925e` (ThinkPad P16s Gen 4 AMD) against a tri-band AP advertising one SSID on 2.4 / 5 / 6 GHz. 5/6 GHz paths were flaky; 2.4 GHz was reliable.
-
-## Fix (script in PATH)
+## Historical approach (do not re-apply)
 
 ```bash
-yuchichi-wifi-fix              # apply
-yuchichi-wifi-fix apply --reconnect
-yuchichi-wifi-fix status
-yuchichi-wifi-fix undo         # revert + reboot to restore ASPM
+# Old profile settings (slow but stable)
+# band=bg, powersave=2, pmf=1
+# plus disable_aspm=1 and global wifi.powersave=2
 ```
 
-Source: `~/.dotfiles/bin/yuchichi-wifi-fix` → `~/.local/bin/yuchichi-wifi-fix`
-
-## What the script sets
-
-1. `/etc/modprobe.d/mt7925e-disable-aspm.conf` → `options mt7925e disable_aspm=1` (reboot if live value is still `N`)
-2. `/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf` → `wifi.powersave = 2`
-3. Profile `yuchichi`: `band=bg`, `powersave=2`, `pmf=1`
-
-## Notes
-
-- "Forget network" creates a new profile — re-run `yuchichi-wifi-fix apply`
-- 2.4 GHz lock trades max throughput for handshake stability (Meet may feel slower than healthy 5 GHz)
-- Optional older firmware staging still lives under `~/mt7925-fw-update/` (`apply.sh` / `recover.sh`)
+`yuchichi-wifi-fix` no longer sets `band=bg`. Running `apply` now sets `band=a` and `connection.auth-retries=10`.

@@ -4,15 +4,17 @@
 # Background: ThinkPad P16s Gen 4 AMD (mt7925e) + home AP "yuchichi" (tri-band
 # same SSID) intermittently fails the WPA 4-way handshake after association.
 # wpa_supplicant reports "pre-shared key may be incorrect"; NetworkManager then
-# re-prompts for the password in a loop even though the PSK is correct
+# re-prompts for the password even though the PSK is correct
 # (reason=15 = 4WAY_HANDSHAKE_TIMEOUT). Failures cluster on the 5/6 GHz
-# BSSIDs; 2.4 GHz is stable.
+# BSSIDs. The first EAPOL TX after a band/firmware path change is often
+# dropped; a later retry with the same PSK succeeds.
 #
 # Mitigations applied by this script:
 #   1. options mt7925e disable_aspm=1     — PCIe ASPM off (probe-time; reboot)
 #   2. wifi.powersave = 2 globally       — NM default powersave off
 #   3. yuchichi profile:
-#        band = bg                       — lock to 2.4 GHz
+#        band = a                        — prefer 5 GHz (not 2.4 GHz lock)
+#        auth-retries = 10               — silent retries; avoid password prompt
 #        powersave = 2                   — powersave off on this profile
 #        pmf = 1                         — disable PMF / avoid WPA3-FT path
 #
@@ -23,7 +25,7 @@
 #   yuchichi-wifi-fix undo         # restore Ubuntu defaults
 #   yuchichi-wifi-fix status       # show current state
 #
-# "Forget network" in the UI creates a new profile and drops band/pmf —
+# "Forget network" in the UI creates a new profile and drops these settings —
 # re-run `apply` after reconnecting.
 
 set -euo pipefail
@@ -31,6 +33,7 @@ set -euo pipefail
 SSID="${SSID:-yuchichi}"
 ASPM_CONF="/etc/modprobe.d/mt7925e-disable-aspm.conf"
 POWERSAVE_CONF="/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf"
+AUTH_RETRIES=10
 
 bold()   { printf '\033[1m%s\033[0m' "$*"; }
 green()  { printf '\033[32m%s\033[0m' "$*"; }
@@ -67,11 +70,15 @@ cmd_status() {
   fi
 
   if have_connection; then
-    local band powersave pmf
+    local band powersave pmf retries
     band="$(nmcli -g 802-11-wireless.band connection show "$SSID" 2>/dev/null || true)"
     powersave="$(nmcli -g 802-11-wireless.powersave connection show "$SSID" 2>/dev/null || true)"
     pmf="$(nmcli -g 802-11-wireless-security.pmf connection show "$SSID" 2>/dev/null || true)"
-    [[ "$band" == "bg" ]] && tick "profile band=bg (2.4 GHz)" || ring "profile band=${band:-unset}"
+    retries="$(nmcli -g connection.auth-retries connection show "$SSID" 2>/dev/null || true)"
+    [[ "$band" == "a" ]] && tick "profile band=a (5 GHz)" || ring "profile band=${band:-unset}"
+    [[ "$retries" == "$AUTH_RETRIES" ]] \
+      && tick "profile auth-retries=$AUTH_RETRIES" \
+      || ring "profile auth-retries=${retries:-unset}"
     [[ "$powersave" == "2" || "$powersave" == "disable" ]] \
       && tick "profile powersave=disable" || ring "profile powersave=${powersave:-unset}"
     [[ "$pmf" == "1" || "$pmf" == "disable" ]] \
@@ -117,9 +124,10 @@ wifi.powersave = 2
 CONF
   sudo nmcli general reload conf
 
-  echo ">>> 3/3  Profile: band=bg, powersave off, pmf off"
+  echo ">>> 3/3  Profile: band=a, auth-retries=$AUTH_RETRIES, powersave off, pmf off"
   nmcli connection modify "$SSID" \
-    802-11-wireless.band bg \
+    802-11-wireless.band a \
+    connection.auth-retries "$AUTH_RETRIES" \
     802-11-wireless.powersave 2 \
     802-11-wireless-security.pmf 1
 
@@ -160,6 +168,7 @@ CONF
     echo ">>> Clearing profile overrides on '$SSID'"
     nmcli connection modify "$SSID" \
       802-11-wireless.band '' \
+      connection.auth-retries -1 \
       802-11-wireless.powersave 0 \
       802-11-wireless-security.pmf 0
   else
@@ -171,7 +180,7 @@ CONF
 }
 
 usage() {
-  sed -n '2,28p' "$0" | sed 's/^# \?//'
+  sed -n '2,30p' "$0" | sed 's/^# \?//'
 }
 
 main() {
