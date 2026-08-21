@@ -11,7 +11,7 @@ Use this for Jira tickets about the SingleStore Analyst / Aura Analyst / SQL Bot
 
 - Jira project: `MCDB`
 - Label: `Analyst` (capitalized — matches existing Analyst tickets; JQL matching is case-insensitive)
-- Component: `AI & Compute Platform`
+- Component: `Analyst` (not `AI & Compute Platform`)
 - Preferred type:
   - `Story` for feature/enforcement/product behavior
   - `Bug` for observed broken behavior or regression
@@ -91,7 +91,7 @@ Set these through `additional_fields` on create, or `fields` on edit:
 |-------|-----|-------------|
 | Epic link | `customfield_10017` | Epic key string, e.g. `"MCDB-90950"` (also populates `parent`) |
 | Sprint | `customfield_10021` | Numeric sprint ID, e.g. `10185` — **not** the sprint name |
-| Component | `components` | `[{"name": "AI & Compute Platform"}]` (id `16771`) |
+| Component | `components` | `[{"name": "Analyst"}]` (id `21469`) |
 | Labels | `labels` | `["Analyst"]` |
 
 ## Known IDs
