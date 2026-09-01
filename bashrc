@@ -91,6 +91,9 @@ source ~/.dotfiles/.shell/aliases.sh
 # Source bootstrap
 source ~/.dotfiles/.shell/bootstrap.sh
 
+# Source local secrets (gitignored)
+[ -f ~/.dotfiles/.shell/secrets.sh ] && source ~/.dotfiles/.shell/secrets.sh
+
 # Source work-related bookmarks
 source ~/.dotfiles/.shell/work-bookmarks.sh
 
