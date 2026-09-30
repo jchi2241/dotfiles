@@ -35,7 +35,7 @@ Read these sibling skills when needed: `helios-frontend-conventions`, `commit`, 
    The recursive `pnpm ... lint` command mirrors the ESLint portion of the GitHub `lint-frontend` job and catches repo-wide failures such as duplicate imports and unused imports that are easy to miss after review-fix commits.
 
 5. Capture visual proof for user-visible changes with `make frontend-start-mocked`, not CCT screenshots unless the mocked app cannot reach the state. Save screenshots and GIFs under `~/Pictures` with descriptive names. BEFORE/AFTER is required when it makes sense: visual regressions, layout changes, ordering/filtering behavior, dialogs, empty/error states, or anything the reviewer benefits from seeing. A single AFTER is acceptable for purely additive UI or when BEFORE is indistinguishable from an error/blank state.
-6. Inspect every screenshot before using it. If the target UI is missing, cropped, hidden behind a loading state, dimmed, or not showing the changed behavior, retake it.
+6. Inspect every screenshot before using it. If the target UI is missing, cropped, hidden behind a loading state, dimmed, or not showing the changed behavior, retake it. Attach native-resolution PNGs. Do not crop-and-upscale (LANCZOS/`resize`/2×) to fake a closer shot — that makes the PR image grainy.
 7. Remove temporary screenshot/test-only scaffolding before committing.
 8. Commit with `commit`, push safely, then create or update the PR with `pr-create`.
 9. Upload visual proof with `pr-image-upload` and put it in the PR body. Keep the PR body concise: summary, short test plan, deployment plan. Do not list routine checks just to prove they ran; CI covers that.
@@ -79,11 +79,7 @@ Throw away visual-proof mocks when complete. Do not commit Playwright routes, te
 
 ## PR Body Rules
 
-- Explain purpose and impact, not line-by-line implementation.
-- Attach verified screenshots or GIFs directly with GitHub `user-attachments` via `pr-image-upload`.
-- Do not leave `[INSERT VIDEO]` or screenshot placeholders in a PR that should be review-ready.
-- Do not claim visual proof if the screenshot was not inspected.
-- If visual proof could not be captured, say why in the final response and leave the PR body honest.
+Follow `writing-pr-descriptions`. Attach verified screenshots or GIFs with GitHub `user-attachments` via `pr-image-upload`. Do not claim visual proof if the screenshot was not inspected. If proof could not be captured, say why in chat and leave the PR body honest.
 
 ## Finish Criteria
 

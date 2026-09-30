@@ -103,6 +103,88 @@ alias loudbell='for i in {1..4}; do paplay /usr/share/sounds/freedesktop/stereo/
 # Clear go cache and builds
 alias goclean='go clean -cache -modcache -i -r'
 
+# Reclaim disk from known safe/regenerable locations (see freespace -h)
+freespace() {
+    local aggressive=0
+    local path size human
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -a|--aggressive) aggressive=1; shift ;;
+            -h|--help)
+                cat <<'EOF'
+Usage: freespace [-a|--aggressive]
+
+Reclaim disk from safe, regenerable caches. Alias: fs
+
+Default:
+  - kill orphaned Electron zygotes (log-flood source)
+  - ~/.cache/go-build
+  - /tmp/go-build* and /tmp/go-link*
+  - truncate /var/log/syslog when >1G (sudo)
+
+-a, --aggressive  also:
+  - go clean -cache -modcache
+  - journal vacuum to 200M (sudo)
+  - apt clean (sudo)
+  - docker build cache prune (sudo)
+EOF
+                return 0
+                ;;
+            *) _error "Unknown option: $1 (try freespace -h)"; return 2 ;;
+        esac
+    done
+
+    _info "Disk before:"
+    df -h / | tail -1
+
+    if [[ -x ~/.local/bin/kill-orphan-zygotes ]]; then
+        local killed
+        killed=$(~/.local/bin/kill-orphan-zygotes 2>&1)
+        if [[ -n $killed ]]; then
+            _warn "$killed"
+        else
+            _ok "No orphaned zygotes"
+        fi
+    fi
+
+    path=~/.cache/go-build
+    if [[ -d $path ]]; then
+        human=$(du -sh "$path" 2>/dev/null | cut -f1)
+        rm -rf "$path" && mkdir -p "$path"
+        _ok "Cleared go-build cache (${human:-?})"
+    fi
+
+    if compgen -G '/tmp/go-build*' >/dev/null || compgen -G '/tmp/go-link*' >/dev/null; then
+        rm -rf /tmp/go-build* /tmp/go-link* 2>/dev/null
+        _ok "Cleared /tmp go artifacts"
+    fi
+
+    if [[ -f /var/log/syslog ]]; then
+        size=$(stat -c%s /var/log/syslog 2>/dev/null || echo 0)
+        if (( size > 1073741824 )); then
+            human=$(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "${size}B")
+            if sudo truncate -s 0 /var/log/syslog && sudo systemctl restart rsyslog.service; then
+                _ok "Truncated syslog ($human)"
+            else
+                _warn "Could not truncate syslog — run: sudo truncate -s 0 /var/log/syslog"
+            fi
+        fi
+    fi
+
+    if (( aggressive )); then
+        command -v go >/dev/null && go clean -cache -modcache 2>/dev/null && _ok "go clean -cache -modcache"
+        sudo journalctl --vacuum-size=200M 2>/dev/null && _ok "Journal vacuumed to 200M"
+        sudo apt-get clean 2>/dev/null && _ok "apt cache cleaned"
+        docker builder prune -f 2>/dev/null && _ok "Docker build cache pruned"
+    fi
+
+    echo
+    _info "Disk after:"
+    df -h / | tail -1
+}
+alias fs=freespace
+
 # Kubectl helpers
 klog() {
   if [ $# -lt 1 ]; then
@@ -231,10 +313,40 @@ worktree-add() {
     _ok "Symlinked .claude/"
   fi
 
+  # Share the main checkout's Go tooling. Pre-commit looks for
+  # $worktree/go/bin/gofumpt; those binaries are gitignored and expensive
+  # to rebuild per worktree.
+  if [ -d "$main_repo/go/bin" ]; then
+    mkdir -p go
+    ln -sfn "$main_repo/go/bin" go/bin
+    _ok "Symlinked go/bin"
+  fi
+
   # Install frontend dependencies for helios worktrees
   if [ "$repo_name" = "helios" ]; then
     _info "Helios repo detected — installing frontend deps..."
     direnv exec . make frontend-deps
+
+    # Cypress CT resolves webpack from the repo-root node_modules. pnpm
+    # only public-hoists @types*, so the main checkout keeps extra webpack
+    # links by hand. Recreate those against this worktree's own .pnpm store
+    # so CT doesn't mix two webpack Compilation classes.
+    local name main_link target rel
+    for name in webpack webpack-dev-server; do
+      main_link="$main_repo/node_modules/$name"
+      if [ ! -e "$main_link" ] && [ ! -L "$main_link" ]; then
+        continue
+      fi
+      target="$(readlink -f "$main_link" 2>/dev/null)" || continue
+      rel="${target#"$main_repo"/}"
+      if [ "$rel" = "$target" ] || [ ! -e "$rel" ]; then
+        _info "Skipped node_modules/$name (not present after frontend-deps)"
+        continue
+      fi
+      mkdir -p node_modules
+      ln -sfn "$PWD/$rel" "node_modules/$name"
+      _ok "Hoisted node_modules/$name for Cypress CT"
+    done
   fi
 }
 

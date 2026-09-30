@@ -14,7 +14,7 @@
       "Read(~/.claude/thoughts/**)"
     ]
   },
-  "model": "us.anthropic.claude-opus-4-8[1m]",
+  "model": "opus",
   "hooks": {
     "PreToolUse": [
       {
@@ -48,8 +48,7 @@
     "gopls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "figma@claude-plugins-official": false,
-    "skill-creator@claude-plugins-official": true,
-    "codex@openai-codex": true
+    "skill-creator@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "chrome-devtools-plugins": {
@@ -57,16 +56,16 @@
         "source": "github",
         "repo": "ChromeDevTools/chrome-devtools-mcp"
       }
-    },
-    "openai-codex": {
-      "source": {
-        "source": "github",
-        "repo": "openai/codex-plugin-cc"
-      }
     }
   },
   "alwaysThinkingEnabled": true,
   "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "medium"
+    }
+  },
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "feedbackSurveyState": {
     "lastShownTime": 1754033590915

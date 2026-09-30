@@ -81,6 +81,9 @@ Every call needs `cloudId`. For memsql it is `1a9d89cb-3ee6-412b-849e-74a5dd4bbd
 (the site URL `memsql.atlassian.net` also works for most tools, but the UUID is
 safest). Confirm with `getAccessibleAtlassianResources` if a call rejects it.
 
+**Subdomain:** always `memsql.atlassian.net` for Jira/Confluence browse and wiki
+links. Never use `singlestore.atlassian.net` — that host is wrong for this org.
+
 After creating a follow-up ticket, link or at least reference the parent ticket in the description.
 
 ## Field IDs (MCDB / Helios Cloud)

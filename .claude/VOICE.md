@@ -73,9 +73,8 @@ yep that's the plan.
 
 ## PR descriptions / formal writing
 
-- Still lowercase for comments/short responses
-- Technical context first, no fluffy summary
-- Keep description concise; let the code speak; link to tickets/designs
+GitHub PR bodies: sentence case. Follow `writing-pr-descriptions`.
+Comments and short GitHub replies: still lowercase; let the code speak.
 
 ## GitHub review comments
 

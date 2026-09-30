@@ -1,92 +1,79 @@
 ---
 name: pr-image-upload
-description: Use when uploading local screenshots, images, GIFs, or visual artifacts to a GitHub PR or issue body, especially review-ready PR workflows, "attach this screenshot", "add the image from ~/Pictures", "use gh-image", "user-attachments", or "add visual proof without repo clutter".
-allowed-tools: Bash(gh extension:*), Bash(gh image:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(python3:*), Bash(ls:*), Bash(pwd:*), Read, Glob
+description: Use when uploading local screenshots, images, GIFs, or visual artifacts to a GitHub PR or issue body, especially review-ready PR workflows, "attach this screenshot", "add the image from ~/Pictures", "gh pr edit --attach", "user-attachments", or "add visual proof without repo clutter".
+allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh issue view:*), Bash(gh issue edit:*), Bash(gh --version:*), Bash(python3:*), Bash(ls:*), Bash(pwd:*), Read, Glob
 ---
 
 # PR Image Upload
 
-Use `gh-image` to upload local images to GitHub `user-attachments` storage and insert the returned Markdown into a PR or issue body. Prefer this for review-ready PRs that need visual proof without release assets, asset branches, or committed screenshots.
+Upload local images into GitHub `user-attachments` and put them in a PR or issue body. Do not commit binaries, create releases, or mint asset-branch URLs unless the user asks.
+
+Use native `gh --attach` (gh 2.99+). It uses existing `gh` API auth.
 
 ## Workflow
 
 ### 1. Find and inspect the image
 
-If the user gives an exact path, use it. If they say `~/Pictures` or similar, use `Glob` for `*.png`, `*.jpg`, `*.jpeg`, `*.webp`, and `*.gif`. If multiple files match and none is obviously the intended recent screenshot, ask.
+Use the path the user gave. For `~/Pictures`, Glob `*.png`, `*.jpg`, `*.jpeg`, `*.webp`, `*.gif`. Ask if several files could match.
 
-For screenshots generated during a review-ready PR workflow, expect them in `~/Pictures` with descriptive names. Do not look in `/tmp` first unless the user points there or the artifact was created before this convention.
+For review-ready PR screenshots, expect `~/Pictures` with descriptive names. Skip `/tmp` unless the user points there or this conversation already wrote the file.
 
-Before uploading, read the image with the image-capable read tool when available. Confirm it is the expected visual artifact and not private or accidental.
+Read the image when available. Confirm it is the expected visual, not private or accidental. Do not crop-and-upscale screenshots before upload. Attach native pixels; if the subject is too small, recapture rather than inventing resolution.
 
-### 2. Install or verify `gh-image`
-
-```bash
-gh extension list
-```
-
-If missing:
+### 2. Confirm native `--attach`
 
 ```bash
-gh extension install drogers0/gh-image
+gh pr edit --help
 ```
 
-Use `drogers0/gh-image`; `p-nerd/gh-image` may not exist.
+If `--attach` is listed, use it. In Helios, run `gh` through `direnv exec .` so the Nix-pinned CLI (2.99+) is used instead of an older system `gh`. If `--attach` is missing, ask the user to drag-and-drop in the GitHub UI.
 
-### 3. Upload the image
+### 3. Attach with local markdown refs
 
-```bash
-gh image "/absolute/path/to/screenshot.png"
-```
+`--attach` uploads the file and rewrites matching local image refs in the body to `https://github.com/user-attachments/assets/...`. Put the refs in the body first, then attach using the **same path string** as in the markdown.
 
-Do not use `gh image upload <file>`; this extension's syntax is `gh image <image-path>...`. The output should be Markdown:
+Rewrite matches the markdown target to the `--attach` argument, not the filename. `./foo.png` in the body plus `--attach /tmp/shots/foo.png` does **not** rewrite: the files still upload, and `gh` **appends** a second image block at the bottom (alt text = filename). Use one of:
 
 ```markdown
-![name.png](https://github.com/user-attachments/assets/...)
+![External Trial organization sees the Standard subscription required alert](./analyst-install-external-trial.png)
 ```
-
-If the command prints a warning but also returns a valid `user-attachments` URL, the upload likely succeeded.
-
-### 4. Update the PR body safely
-
-Avoid Bash parameter replacement for `[INSERT VIDEO]`; square brackets are pattern characters and can corrupt the body. Use Python for literal replacement:
 
 ```bash
-IMG_MD='![name.png](https://github.com/user-attachments/assets/...)'
-BODY=$(gh pr view 123 --json body --jq .body)
-UPDATED_BODY=$(BODY="$BODY" IMG_MD="$IMG_MD" python3 - <<'PY'
-import os
-
-body = os.environ["BODY"]
-img = os.environ["IMG_MD"]
-placeholder = "[INSERT VIDEO]"
-
-if placeholder in body:
-    print(body.replace(placeholder, img))
-else:
-    print(body.rstrip() + "\n\n" + img)
-PY
-)
-gh pr edit 123 --body "$UPDATED_BODY"
+# cwd contains the images, same relative path as the markdown
+gh pr edit 123 --body-file ./body.md \
+  --attach ./analyst-install-external-trial.png \
+  --attach './login.png#The login error state'
 ```
 
-If the PR has a stale placeholder like `[INSERT VIDEO]`, replace it with the real artifact. Phrase the test plan honestly: say screenshot when the artifact is a screenshot.
+or keep the images elsewhere and use that exact path in both places:
 
-### 5. Verify
+```markdown
+![...](/tmp/analyst-shots/analyst-install-external-trial.png)
+```
+
+```bash
+gh pr edit 123 --body-file ./body.md \
+  --attach /tmp/analyst-shots/analyst-install-external-trial.png
+```
+
+`--attach '<file>#<alt text>'` sets alt text on appended images; otherwise the filename is used. Without `--body` / `--body-file`, the existing body is kept and attachments are appended. Use `--body-file` to place images in a specific section. Max 50 files per command.
+
+For issues: `gh issue edit <n> --attach ...` with the same pattern.
+
+If some attachments fail, the body may still include the successful ones. Re-run only the failed files.
+
+### 4. Verify
 
 ```bash
 gh pr view 123 --json body --jq .body
 ```
 
-Check that:
+Body not mangled; each image **once**; URLs are `https://github.com/user-attachments/assets/...`; no leftover `./file.png` or absolute local paths; no release, branch, or committed-file URLs.
 
-- The body is not mangled.
-- The attachment appears exactly once.
-- The URL is `https://github.com/user-attachments/assets/...`.
-- No release asset, raw branch URL, or committed file path was used.
+If you see both local refs **and** extra `![filename](https://github.com/user-attachments/assets/...)` lines at the bottom, rewrite failed. Splice the uploaded URLs into the intended captions, drop the appended copies, and `gh pr edit --body-file` the corrected body (no second `--attach`).
+
+Say screenshot when it is a screenshot. Replace stale `[INSERT VIDEO]` placeholders.
 
 ## Safety notes
 
-- Do not commit screenshots or other binary proof artifacts to the product branch unless the user explicitly requests it.
-- Do not create GitHub releases or tags for PR images unless the user explicitly asks for the release-asset workaround.
-- Do not use `--token` on a shared machine unless needed; command-line token values can appear in process listings. Prefer existing `gh` auth or `GH_SESSION_TOKEN` if a session token is required.
-- If upload fails because the extension cannot extract a browser session token, explain that manual drag-and-drop in the GitHub UI is the clean fallback.
+Do not commit screenshots or create releases unless the user asks. `--attach` arguments are file paths, not secrets.

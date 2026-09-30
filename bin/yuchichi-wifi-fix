@@ -3,20 +3,47 @@
 #
 # Background: ThinkPad P16s Gen 4 AMD (mt7925e) + home AP "yuchichi" (tri-band
 # same SSID) intermittently fails the WPA 4-way handshake after association.
-# wpa_supplicant reports "pre-shared key may be incorrect"; NetworkManager then
-# re-prompts for the password even though the PSK is correct
-# (reason=15 = 4WAY_HANDSHAKE_TIMEOUT). Failures cluster on the 5/6 GHz
-# BSSIDs. The first EAPOL TX after a band/firmware path change is often
-# dropped; a later retry with the same PSK succeeds.
+# Kernel: Reason 15=4WAY_HANDSHAKE_TIMEOUT. NetworkManager then logs
+# "asking for new key" and the GNOME agent pops a password dialog even though
+# the stored PSK is correct. Failures cluster on 5/6 GHz and especially on
+# the first connect attempt right after suspend/resume (firmware not ready).
 #
 # Mitigations applied by this script:
 #   1. options mt7925e disable_aspm=1     — PCIe ASPM off (probe-time; reboot)
+#      options mt7925-common disable_clc=1
+#                                        — skip the firmware CLC regulatory
+#                                          command; 6.17 sends it with a bad
+#                                          TLV length (fixed upstream in
+#                                          62e037aa, kernel 7.0.4+), which
+#                                          2026 firmware answers with failed
+#                                          handshakes (Red Hat bug 2430575).
+#                                          Drop once on a kernel with the fix.
 #   2. wifi.powersave = 2 globally       — NM default powersave off
 #   3. yuchichi profile:
 #        band = a                        — prefer 5 GHz (not 2.4 GHz lock)
-#        auth-retries = 10               — silent retries; avoid password prompt
 #        powersave = 2                   — powersave off on this profile
 #        pmf = 1                         — disable PMF / avoid WPA3-FT path
+#   4. systemd sleep hook                — radio off across suspend, back on
+#                                          once the firmware has settled
+#   5. firmware watcher                  — same radio-off settle after a
+#                                          spontaneous mt7925e firmware reset
+#
+# Recovery never drives connections itself: it only keeps the radio off while
+# the firmware is not ready, then leaves reconnecting to NetworkManager.
+# An earlier helper looped `nmcli connection up/down` and reloaded the driver.
+# That tore down connections NetworkManager had just made, and driver reloads
+# did not shorten recovery (removed 2026-09-29).
+#
+# Note: connection.auth-retries does NOT apply to WPA-PSK (only 802.1x). An
+# earlier revision set it; it is harmless but does not stop the password
+# dialog. The sleep hook is what fixes the resume path.
+#
+# Two things the first revision of the hook got wrong (fixed 2026-08-28):
+#   * systemd 255 only scans /usr/lib/systemd/system-sleep. /etc/systemd/
+#     system-sleep is not read until systemd 256, so the hook never ran.
+#   * systemd-suspend.service is Type=oneshot with KillMode=control-group, so
+#     a backgrounded subshell is SIGTERMed the moment the hook returns. The
+#     delayed reconnect must run in its own transient unit via systemd-run.
 #
 # Usage:
 #   yuchichi-wifi-fix              # apply (idempotent)
@@ -24,16 +51,31 @@
 #   yuchichi-wifi-fix apply --reconnect   # apply + bounce the link
 #   yuchichi-wifi-fix undo         # restore Ubuntu defaults
 #   yuchichi-wifi-fix status       # show current state
+#   yuchichi-wifi-fix recover      # run the firmware-reset settle by hand
+#                                  # (use when the handshake keeps timing out
+#                                  #  with no suspend involved)
 #
-# "Forget network" in the UI creates a new profile and drops these settings —
+# "Forget network" in the UI creates a new profile and drops profile settings —
 # re-run `apply` after reconnecting.
 
 set -euo pipefail
 
 SSID="${SSID:-yuchichi}"
 ASPM_CONF="/etc/modprobe.d/mt7925e-disable-aspm.conf"
+CLC_CONF="/etc/modprobe.d/mt7925-common-disable-clc.conf"
 POWERSAVE_CONF="/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf"
-AUTH_RETRIES=10
+SLEEP_HOOK="/usr/lib/systemd/system-sleep/yuchichi-wifi-resume"
+LEGACY_SLEEP_HOOK="/etc/systemd/system-sleep/yuchichi-wifi-resume"
+RECONNECT_HELPER="/usr/local/sbin/yuchichi-wifi-reconnect"
+WATCH_UNIT="yuchichi-wifi-watch.service"
+WATCH_SERVICE="/etc/systemd/system/$WATCH_UNIT"
+RECOVER_UNIT="yuchichi-wifi-recover.service"
+RECOVER_SERVICE="/etc/systemd/system/$RECOVER_UNIT"
+# Seconds the radio stays off before NetworkManager may try a handshake.
+# After resume the firmware needs a few seconds. After a spontaneous firmware
+# reset, handshakes at ~20s failed and ones at ~30s succeeded (Sep 2026 logs).
+RESUME_SETTLE_SEC="${RESUME_SETTLE_SEC:-13}"
+FW_RESET_SETTLE_SEC="${FW_RESET_SETTLE_SEC:-45}"
 
 bold()   { printf '\033[1m%s\033[0m' "$*"; }
 green()  { printf '\033[32m%s\033[0m' "$*"; }
@@ -43,6 +85,128 @@ ring()   { printf '  %s %s\n' "$(yellow '○')" "$*"; }
 
 have_connection() {
   nmcli -t -f NAME connection show 2>/dev/null | grep -Fxq "$SSID"
+}
+
+write_reconnect_helper() {
+  # Handles both post-resume and spontaneous firmware-reset recovery. The
+  # "watch" mode follows new kernel messages and dispatches a separate systemd
+  # service for each firmware reset.
+  sudo tee "$RECONNECT_HELPER" >/dev/null <<HELPER
+#!/bin/sh
+# Managed by yuchichi-wifi-fix — do not edit; re-run that script instead.
+MODE="\${1:-resume}"
+case "\$MODE" in
+  watch) ;;
+  resume) SETTLE="${RESUME_SETTLE_SEC}" ;;
+  firmware-reset) SETTLE="${FW_RESET_SETTLE_SEC}" ;;
+  *) echo "unknown mode: \$MODE" >&2; exit 2 ;;
+esac
+
+log() { logger -t yuchichi-wifi-resume "\$*"; }
+
+watch_firmware() {
+  # Ignore the normal firmware banner at boot, then consume future lines only.
+  sleep 30
+  journalctl -k -f -n 0 -o cat | while IFS= read -r line; do
+    case "\$line" in
+      *mt7925e*": WM Firmware Version:"*)
+        log "firmware reload detected; starting automatic recovery"
+        systemctl start --no-block ${RECOVER_UNIT} ||
+          log "could not start ${RECOVER_UNIT}"
+        ;;
+    esac
+  done
+}
+
+if [ "\$MODE" = watch ]; then
+  watch_firmware
+  exit 0
+fi
+
+# Resume and spontaneous-reset paths can overlap. Only one may hold the radio.
+exec 9>/run/yuchichi-wifi-recover.lock
+if ! flock -n 9; then
+  log "recovery already running; skipped duplicate trigger"
+  exit 0
+fi
+
+# Until the firmware settles, every 4-way handshake times out, and
+# NetworkManager answers each timeout with a password dialog. Keep the radio off
+# until the chip is ready, then let NetworkManager's own autoconnect take over.
+# The radio must come back even if this is interrupted.
+trap 'nmcli radio wifi on >/dev/null 2>&1 || true; log "\$MODE: radio on; NetworkManager autoconnect takes over"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+log "\$MODE: radio off for \${SETTLE}s while mt7925e firmware settles"
+nmcli radio wifi off >/dev/null 2>&1 || true
+sleep "\$SETTLE"
+HELPER
+  sudo chmod 755 "$RECONNECT_HELPER"
+}
+
+write_watch_services() {
+  sudo tee "$RECOVER_SERVICE" >/dev/null <<UNIT
+[Unit]
+Description=Recover yuchichi Wi-Fi after MT7925 firmware reset
+After=NetworkManager.service
+Requires=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=${RECONNECT_HELPER} firmware-reset
+TimeoutStartSec=5min
+UNIT
+
+  sudo tee "$WATCH_SERVICE" >/dev/null <<UNIT
+[Unit]
+Description=Watch for MT7925 firmware resets
+After=NetworkManager.service
+Requires=NetworkManager.service
+
+[Service]
+Type=simple
+ExecStart=${RECONNECT_HELPER} watch
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+  sudo systemd-analyze verify "$WATCH_SERVICE" "$RECOVER_SERVICE"
+  sudo systemctl daemon-reload
+  sudo systemctl enable "$WATCH_UNIT"
+  sudo systemctl restart "$WATCH_UNIT"
+}
+
+write_sleep_hook() {
+  # Runs as root on every suspend/resume.
+  # pre:  kill the radio so NM cannot race into a cold 4-way handshake on wake.
+  # post: hand off to the helper in a transient unit and return immediately;
+  #       it turns the radio back on after the firmware has settled.
+  sudo tee "$SLEEP_HOOK" >/dev/null <<HOOK
+#!/bin/sh
+# Managed by yuchichi-wifi-fix — do not edit; re-run that script instead.
+case "\$1" in
+  pre)
+    logger -t yuchichi-wifi-resume "pre-suspend: wifi radio off"
+    nmcli radio wifi off >/dev/null 2>&1 || true
+    ;;
+  post)
+    logger -t yuchichi-wifi-resume "post-resume: handing off to reconnect helper"
+    if ! systemd-run --no-block --collect \\
+         --unit=yuchichi-wifi-resume-reconnect \\
+         --description="Reconnect Wi-Fi after resume" \\
+         ${RECONNECT_HELPER} >/dev/null 2>&1; then
+      # Fall back to at least restoring the radio we switched off.
+      logger -t yuchichi-wifi-resume "systemd-run failed; enabling radio inline"
+      nmcli radio wifi on >/dev/null 2>&1 || true
+    fi
+    ;;
+esac
+HOOK
+  sudo chmod 755 "$SLEEP_HOOK"
 }
 
 cmd_status() {
@@ -63,22 +227,65 @@ cmd_status() {
     ring "live disable_aspm=$live_aspm (reboot needed if conf exists)"
   fi
 
+  if [[ -f "$CLC_CONF" ]]; then
+    tick "CLC override present ($CLC_CONF)"
+  else
+    ring "CLC override missing"
+  fi
+  local live_clc="?"
+  [[ -r /sys/module/mt7925_common/parameters/disable_clc ]] \
+    && live_clc="$(cat /sys/module/mt7925_common/parameters/disable_clc)"
+  if [[ "$live_clc" == "Y" ]]; then
+    tick "live disable_clc=$live_clc (active this boot)"
+  else
+    ring "live disable_clc=$live_clc (reboot needed if conf exists)"
+  fi
+
   if [[ -f "$POWERSAVE_CONF" ]] && grep -q 'wifi.powersave\s*=\s*2' "$POWERSAVE_CONF"; then
     tick "global wifi.powersave=2 (off)"
   else
     ring "global wifi.powersave is not 2"
   fi
 
+  if [[ -x "$SLEEP_HOOK" ]]; then
+    tick "resume hook present ($SLEEP_HOOK)"
+  else
+    ring "resume hook missing"
+  fi
+  if [[ -x "$RECONNECT_HELPER" ]] &&
+     grep -q 'firmware reload detected' "$RECONNECT_HELPER"; then
+    tick "automatic recovery helper present ($RECONNECT_HELPER)"
+  else
+    ring "automatic recovery helper missing or stale — re-run apply"
+  fi
+  systemctl is-enabled --quiet "$WATCH_UNIT" 2>/dev/null \
+    && tick "firmware watcher enabled" || ring "firmware watcher not enabled"
+  systemctl is-active --quiet "$WATCH_UNIT" 2>/dev/null \
+    && tick "firmware watcher running" || ring "firmware watcher not running"
+  if [[ -e "$LEGACY_SLEEP_HOOK" ]]; then
+    ring "stale hook in $LEGACY_SLEEP_HOOK (systemd <256 never runs it) — re-run apply"
+  fi
+
+  # A hook file that exists is not a hook that runs — check it actually fired.
+  local last_hook
+  last_hook="$(journalctl -b -t yuchichi-wifi-resume -n 1 --no-pager -o cat 2>/dev/null | tail -1)"
+  if [[ -n "$last_hook" ]]; then
+    tick "hook ran this boot (last: $last_hook)"
+  else
+    ring "hook has not logged this boot (suspend once to confirm it runs)"
+  fi
+
   if have_connection; then
-    local band powersave pmf retries
+    local band powersave pmf autoconnect
     band="$(nmcli -g 802-11-wireless.band connection show "$SSID" 2>/dev/null || true)"
     powersave="$(nmcli -g 802-11-wireless.powersave connection show "$SSID" 2>/dev/null || true)"
     pmf="$(nmcli -g 802-11-wireless-security.pmf connection show "$SSID" 2>/dev/null || true)"
-    retries="$(nmcli -g connection.auth-retries connection show "$SSID" 2>/dev/null || true)"
+    autoconnect="$(nmcli -g connection.autoconnect connection show "$SSID" 2>/dev/null || true)"
+    # Helpers before 2026-09-29 toggled this off and could leave it off.
+    [[ "$autoconnect" == "yes" ]] \
+      && tick "profile autoconnect=yes" \
+      || ring "profile autoconnect=${autoconnect:-unset} — resume helper may have died; run: nmcli connection modify $SSID connection.autoconnect yes"
     [[ "$band" == "a" ]] && tick "profile band=a (5 GHz)" || ring "profile band=${band:-unset}"
-    [[ "$retries" == "$AUTH_RETRIES" ]] \
-      && tick "profile auth-retries=$AUTH_RETRIES" \
-      || ring "profile auth-retries=${retries:-unset}"
     [[ "$powersave" == "2" || "$powersave" == "disable" ]] \
       && tick "profile powersave=disable" || ring "profile powersave=${powersave:-unset}"
     [[ "$pmf" == "1" || "$pmf" == "disable" ]] \
@@ -109,14 +316,22 @@ cmd_apply() {
   echo "$(bold "Applying mitigations for '$SSID'...")"
   echo
 
-  echo ">>> 1/3  PCIe ASPM off for mt7925e"
+  echo ">>> 1/5  PCIe ASPM off for mt7925e"
   sudo tee "$ASPM_CONF" >/dev/null <<'CONF'
 # Disable PCIe ASPM on MediaTek MT7925 — reduces 4-way handshake timeouts
 # that NetworkManager mis-reports as a wrong Wi-Fi password.
 options mt7925e disable_aspm=1
 CONF
 
-  echo ">>> 2/3  Global NetworkManager Wi-Fi powersave = off"
+  echo ">>> 1b/5 CLC regulatory command off for mt7925-common"
+  sudo tee "$CLC_CONF" >/dev/null <<'CONF'
+# Kernels before 7.0.4 send the MT7925 CLC command with a bad TLV length
+# (fixed upstream in 62e037aa); 2026 firmware then fails WPA handshakes and
+# NetworkManager mis-reports it as a wrong Wi-Fi password.
+options mt7925-common disable_clc=1
+CONF
+
+  echo ">>> 2/5  Global NetworkManager Wi-Fi powersave = off"
   sudo tee "$POWERSAVE_CONF" >/dev/null <<'CONF'
 [connection]
 # 2 = disable. Ubuntu ships 3=enable; recreating a Wi-Fi profile re-inherits it.
@@ -124,12 +339,20 @@ wifi.powersave = 2
 CONF
   sudo nmcli general reload conf
 
-  echo ">>> 3/3  Profile: band=a, auth-retries=$AUTH_RETRIES, powersave off, pmf off"
+  echo ">>> 3/5  Profile: band=a, powersave off, pmf off"
   nmcli connection modify "$SSID" \
     802-11-wireless.band a \
-    connection.auth-retries "$AUTH_RETRIES" \
     802-11-wireless.powersave 2 \
     802-11-wireless-security.pmf 1
+
+  echo ">>> 4/5  Recovery helper + systemd sleep hook"
+  sudo mkdir -p "$(dirname "$SLEEP_HOOK")" "$(dirname "$RECONNECT_HELPER")"
+  sudo rm -f "$LEGACY_SLEEP_HOOK"
+  write_reconnect_helper
+  write_sleep_hook
+
+  echo ">>> 5/5  Automatic firmware-reset watcher"
+  write_watch_services
 
   echo
   cmd_status
@@ -143,19 +366,31 @@ CONF
       | grep '^yes' | sed 's/^/  /' || true
   fi
 
-  local live_aspm
+  local live_aspm live_clc
   live_aspm="$(cat /sys/module/mt7925e/parameters/disable_aspm 2>/dev/null || echo '?')"
-  if [[ "$live_aspm" != "Y" ]]; then
+  live_clc="$(cat /sys/module/mt7925_common/parameters/disable_clc 2>/dev/null || echo '?')"
+  if [[ "$live_aspm" != "Y" || "$live_clc" != "Y" ]]; then
     echo
-    echo "Note: disable_aspm is $live_aspm — reboot once for ASPM:  sudo reboot"
+    echo "Note: disable_aspm=$live_aspm disable_clc=$live_clc — reboot once to apply:  sudo reboot"
   fi
+
+  echo
+  echo "Automatic recovery is active immediately (no reboot)."
 }
 
 cmd_undo() {
   echo "$(bold "Undoing mitigations...")"
   echo
-  echo ">>> Removing mt7925e ASPM override"
-  sudo rm -f "$ASPM_CONF"
+  echo ">>> Removing mt7925e ASPM and CLC overrides"
+  sudo rm -f "$ASPM_CONF" "$CLC_CONF"
+
+  echo ">>> Removing automatic recovery and resume hook"
+  sudo systemctl disable --now "$WATCH_UNIT" >/dev/null 2>&1 || true
+  sudo systemctl stop "$RECOVER_UNIT" >/dev/null 2>&1 || true
+  sudo rm -f "$WATCH_SERVICE" "$RECOVER_SERVICE"
+  sudo rm -f "$SLEEP_HOOK" "$LEGACY_SLEEP_HOOK" "$RECONNECT_HELPER"
+  sudo systemctl daemon-reload
+  nmcli radio wifi on >/dev/null 2>&1 || true
 
   echo ">>> Restoring Ubuntu global wifi.powersave=3"
   sudo tee "$POWERSAVE_CONF" >/dev/null <<'CONF'
@@ -168,7 +403,6 @@ CONF
     echo ">>> Clearing profile overrides on '$SSID'"
     nmcli connection modify "$SSID" \
       802-11-wireless.band '' \
-      connection.auth-retries -1 \
       802-11-wireless.powersave 0 \
       802-11-wireless-security.pmf 0
   else
@@ -176,11 +410,21 @@ CONF
   fi
 
   echo
-  echo "Undone. Reboot to restore ASPM:  sudo reboot"
+  echo "Undone. Reboot to restore ASPM and CLC:  sudo reboot"
+}
+
+cmd_recover() {
+  if [[ ! -x "$RECONNECT_HELPER" || ! -f "$RECOVER_SERVICE" ]]; then
+    echo "ERROR: automatic recovery is not installed. Run: yuchichi-wifi-fix apply"
+    exit 1
+  fi
+  echo "$(bold "Starting MT7925 recovery (radio off for ${FW_RESET_SETTLE_SEC}s)...")"
+  sudo systemctl start "$RECOVER_UNIT"
+  journalctl -u "$RECOVER_UNIT" -n 20 --no-pager
 }
 
 usage() {
-  sed -n '2,30p' "$0" | sed 's/^# \?//'
+  sed -n '2,44p' "$0" | sed 's/^# \?//'
 }
 
 main() {
@@ -190,6 +434,7 @@ main() {
     apply|enable)  cmd_apply "$@" ;;
     undo|disable)  cmd_undo "$@" ;;
     status)        cmd_status ;;
+    recover)       cmd_recover ;;
     -h|--help|help) usage ;;
     *)
       echo "Unknown command: $cmd"
