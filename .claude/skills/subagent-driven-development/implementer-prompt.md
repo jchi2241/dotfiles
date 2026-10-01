@@ -2,7 +2,7 @@
 
 Use this template when dispatching an implementer subagent via the Task tool.
 
-**Dispatch as:** Task tool, model: **opus**, subagent_type: **general-purpose**
+**Dispatch as:** Task tool, model role `code workers`, subagent_type: **general-purpose**
 
 ```
 You are implementing a task from an implementation plan.

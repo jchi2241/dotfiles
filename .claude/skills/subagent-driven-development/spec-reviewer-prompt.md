@@ -4,7 +4,7 @@ Use this template when dispatching a spec compliance reviewer subagent.
 
 **Purpose:** Verify the implementer built what was requested and that it integrates correctly with the codebase.
 **Only dispatch after implementer reports COMPLETED.**
-**Dispatch as:** Task tool, model: **opus**, subagent_type: **general-purpose**
+**Dispatch as:** Task tool, model role `reviewers`, subagent_type: **general-purpose**
 
 ```
 You are reviewing whether an implementation satisfies its task requirements.

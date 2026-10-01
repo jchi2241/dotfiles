@@ -24,8 +24,8 @@ One message, two `Task` calls, `subagent_type: generalPurpose`, not readonly (re
 
 | Lens | Model | Looks for |
 |---|---|---|
-| Judgment | inherit | Corrections from Justin, the principle beneath them, second-order effects missed, checks that were self-reported instead of proven |
-| Tooling | `gpt-5.6-sol-xhigh` | Commands, flags, paths, and quirks that cost time, and context Justin pasted that an MCP or skill could have fetched |
+| Judgment | model role `judgment` | Corrections from Justin, the principle beneath them, second-order effects missed, checks that were self-reported instead of proven |
+| Tooling | model role `contrast` | Commands, flags, paths, and quirks that cost time, and context Justin pasted that an MCP or skill could have fetched |
 
 ## 3. Synthesize
 

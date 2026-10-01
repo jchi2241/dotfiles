@@ -21,6 +21,25 @@ When writing anything on Justin's behalf (Slack messages, PRs, GitHub review com
 
 For a Helios or Analyst coding task, or when the user says `/chi-mode`, read `~/.claude/skills/chi-mode/SKILL.md` and pick a playbook.
 
+## Subagent models
+
+Skills name a model role, written as model role `<name>`, instead of a model. Pass the role's value as the Task `model`.
+
+<!-- models:begin -->
+| Role | Model | Used for |
+|---|---|---|
+| `explorers` | `cursor-grok-4.6-high` | Fast read-only fan-out: `how` explorers, `why` investigators |
+| `judgment` | `claude-opus-5-5-medium` | Synthesis and prose: `how` explainer, `why` synthesizer, `/reflect` judgment |
+| `contrast` | `gpt-5.6-sol-xhigh` | A second family for a different read: `/reflect` tooling |
+| `code workers` | `claude-opus-5-5-medium` | Implementers and fixers in `/implement-plan` |
+| `reviewers` | `claude-opus-5-5-medium` | Pre-flight, spec, code-quality, and integration reviewers in `/implement-plan` |
+| `panel` | `claude-opus-5-5-medium`, `gpt-5.6-sol-xhigh`, `cursor-grok-4.6-high` | One subagent per entry: `arena` and `architect` runners, `interrogate` reviewers, and the `arena` judge pool |
+<!-- models:end -->
+
+- `inherit` as a value: omit the Task `model` so the subagent runs on the parent's model.
+- In Claude Code, pass the family alias (`opus`, `sonnet`, `haiku`) for a Claude value, and omit `model` for any other family.
+- If the Task tool rejects a value, use the closest available model of the same family and say which one you used. Then run `/setup-models`.
+
 ## Principles
 
 When a trigger below matches, read the linked file in full before you act. It holds the rule. In your reply, name each principle that changed a decision.

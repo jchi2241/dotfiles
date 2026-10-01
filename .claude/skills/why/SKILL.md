@@ -9,7 +9,7 @@ Investigate the motivation and intent behind code.
 
 Companion to the `how` skill. `how` answers what the code does and how it works. `why` answers what forces led to its shape.
 
-Investigators use `cursor-grok-4.6-high`. The synthesizer uses `claude-opus-5-5-medium`. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used. Families: `claude-*`, `gpt-*`, and `cursor-grok-*`. Local evidence sources are listed at the top of `references/source-playbook.md`.
+Local evidence sources are listed at the top of `references/source-playbook.md`.
 
 ## Operating Posture
 
@@ -80,7 +80,7 @@ Launch all matching investigators in a single message so they run concurrently. 
 
 Subagent config (each):
 - `subagent_type`: `generalPurpose`
-- `model`: `cursor-grok-4.6-high`
+- `model`: model role `explorers`
 - `readonly`: `false` (agent mode). **Do not use readonly/Ask mode.** It strips MCP access, which disables MCP-backed investigators entirely. Investigators still shouldn't write anything.
 
 Each investigator gets:
@@ -124,7 +124,7 @@ If your scope assessment suggests a single-commit trivial target where the PR de
 Spawn one synthesizer subagent:
 
 - `subagent_type`: `generalPurpose`
-- `model`: `claude-opus-5-5-medium`
+- `model`: model role `judgment`
 - `readonly`: `false` (agent mode). The synthesizer's quality check spot-verifies citations, which can require MCP access. Readonly/Ask mode strips MCPs and defeats that.
 
 The synthesizer gets:

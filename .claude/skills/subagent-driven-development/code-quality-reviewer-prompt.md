@@ -4,7 +4,7 @@ Use this template when dispatching a code quality reviewer subagent.
 
 **Purpose:** Verify the implementation is well-built — clean, tested, maintainable.
 **Only dispatch AFTER spec compliance review passes.**
-**Dispatch as:** Task tool, model: **opus**, subagent_type: **general-purpose**
+**Dispatch as:** Task tool, model role `reviewers`, subagent_type: **general-purpose**
 
 ```
 You are a staff engineer reviewing code quality for a completed task.

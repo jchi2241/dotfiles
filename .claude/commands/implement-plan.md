@@ -98,7 +98,7 @@ Current phase: Phase [N] — [phase name] ([X] pending tasks)
 
 **Skip in:** Standard mode (single session, no cross-phase boundary), YOLO mode.
 
-Spawn a **read-only** Task agent (model: **opus**, subagent_type: **general-purpose**):
+Spawn a **read-only** Task agent (model role `reviewers`, subagent_type: **general-purpose**):
 
 ```
 You are a staff engineer verifying integration before starting Phase [N].
@@ -196,7 +196,7 @@ For each unblocked, pending task in the current PR:
 #### 2a. Dispatch Implementer
 
 1. **Mark task as in_progress** (Task APIs or JSON fallback)
-2. **Dispatch implementer subagent** (model: **opus**, subagent_type: **general-purpose**). The dispatch prompt is a SHORT pointer — do NOT inline the template body. The subagent reads the template itself. Structure:
+2. **Dispatch implementer subagent** (model role `code workers`, subagent_type: **general-purpose**). The dispatch prompt is a SHORT pointer — do NOT inline the template body. The subagent reads the template itself. Structure:
 
 ```
 Read ~/.claude/skills/subagent-driven-development/implementer-prompt.md — that is your full instructions. Follow it.
@@ -225,7 +225,7 @@ Sibling tasks this phase: [brief list with statuses]
 
 #### 2b. Spec Compliance Review (skip in --yolo mode)
 
-1. **Dispatch spec reviewer** (model: **opus**, subagent_type: **general-purpose**). Short pointer-based prompt:
+1. **Dispatch spec reviewer** (model role `reviewers`, subagent_type: **general-purpose**). Short pointer-based prompt:
 
 ```
 Read ~/.claude/skills/subagent-driven-development/spec-reviewer-prompt.md — that is your full instructions. Follow it.
@@ -243,7 +243,7 @@ Implementer's report:
 
 #### 2c. Code Quality Review (skip in --yolo mode)
 
-1. **Dispatch code quality reviewer** (model: **opus**, subagent_type: **general-purpose**). Short pointer-based prompt:
+1. **Dispatch code quality reviewer** (model role `reviewers`, subagent_type: **general-purpose**). Short pointer-based prompt:
 
 ```
 Read ~/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md — that is your full instructions. Follow it.
@@ -266,7 +266,7 @@ Files changed: [list]
 
 #### 2e. Fix Subagent Protocol
 
-When a reviewer finds issues, dispatch a fresh fix subagent (model: **opus**, subagent_type: **general-purpose**):
+When a reviewer finds issues, dispatch a fresh fix subagent (model role `code workers`, subagent_type: **general-purpose**):
 
 ```
 Fix the following issues found during [spec compliance / code quality] review.
@@ -348,7 +348,7 @@ Per-task reviews (spec compliance + code quality) are already complete from Step
 
 **3a. Cross-Task Integration Review**
 
-Spawn a **separate** Task agent (model: **opus**, subagent_type: **general-purpose**). This agent checks that individually-reviewed tasks work together correctly:
+Spawn a **separate** Task agent (model role `reviewers`, subagent_type: **general-purpose**). This agent checks that individually-reviewed tasks work together correctly:
 
 ```
 You are a staff engineer reviewing Phase [N] as a whole — checking that individually-reviewed tasks integrate correctly.

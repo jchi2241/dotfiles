@@ -101,6 +101,39 @@ def check_router() -> None:
             fail(router, f"router has no row for playbooks/{pb.name}")
 
 
+# Model names belong only in the CLAUDE.md models table. These skills cite model names as query data.
+MODEL_DATA_SKILLS = {"debugging-umg-incidents", "querying-grafana"}
+MODEL_NAME = re.compile(
+    r"\b(?:claude-(?:opus|sonnet|haiku)-\d[\w.-]*|gpt-\d[\w.-]*|(?:cursor-)?grok-\d[\w.-]*|composer-\d[\w.-]*)"
+    r"|model: \*\*(?:opus|sonnet|haiku)\*\*"
+)
+
+
+def model_roles() -> set[str]:
+    claude_md = CLAUDE / "CLAUDE.md"
+    m = re.search(r"<!-- models:begin -->(.*?)<!-- models:end -->", claude_md.read_text(), re.S)
+    if not m:
+        fail(claude_md, "missing <!-- models:begin --> ... <!-- models:end --> table")
+        return set()
+    return set(re.findall(r"^\| `([^`]+)` \|", m.group(1), re.M))
+
+
+def check_models(files: list[Path], roles: set[str]) -> None:
+    used: set[str] = set()
+    for f in files:
+        text = f.read_text()
+        for role in re.findall(r"model role `([^`<]+)`", text):
+            used.add(role)
+            if role not in roles:
+                fail(f, f"unknown model role: {role}")
+        if f.name == "CLAUDE.md" or MODEL_DATA_SKILLS & set(f.parts):
+            continue
+        for name in sorted(set(MODEL_NAME.findall(text))):
+            fail(f, f"names a model directly ({name}); use a model role from ~/.claude/CLAUDE.md")
+    for role in sorted(roles - used):
+        fail(CLAUDE / "CLAUDE.md", f"model role {role!r} is not referenced by any skill or command")
+
+
 def doc_files() -> list[Path]:
     files = [CLAUDE / "CLAUDE.md", CLAUDE / "VOICE.md"]
     files += sorted(COMMANDS.glob("*.md"))
@@ -156,6 +189,7 @@ def main() -> int:
     check_principles_index()
     check_router()
     check_references(doc_files(), known_skill_names())
+    check_models(doc_files(), model_roles())
     if errors:
         print("\n".join(errors))
         print(f"\n{len(errors)} problem(s) in ~/.claude skills.", file=sys.stderr)

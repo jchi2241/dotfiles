@@ -33,20 +33,12 @@ Write one clear paragraph. If you're unsure about the intent, ask the user befor
 
 ## Step 3, Spawn Reviewers
 
-Launch all three reviewers in a single message using the Task tool.
-
-| Subagent | Model |
-|----------|-------|
-| Reviewer A | `claude-opus-5-5-medium` |
-| Reviewer B | `gpt-5.6-sol-xhigh` |
-| Reviewer C | `cursor-grok-4.6-high` |
+Launch one reviewer per entry in model role `panel`, all in a single message using the Task tool. Label them Reviewer A, B, C, and so on, in list order.
 
 For each reviewer:
 - `subagent_type`: `generalPurpose`
-- `model`: the table value
+- `model`: its `panel` entry
 - `readonly`: `true`
-
-If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used. Families: `claude-*`, `gpt-*`, and `cursor-grok-*`. With no family match, use Reviewer A's model. Do not block the review on the slug.
 
 Read `references/reviewer-prompt.md` and fill in the template with:
 1. The stated intent
