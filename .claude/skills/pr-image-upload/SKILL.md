@@ -1,6 +1,6 @@
 ---
 name: pr-image-upload
-description: Use when uploading local screenshots, images, GIFs, or visual artifacts to a GitHub PR or issue body, especially review-ready PR workflows, "attach this screenshot", "add the image from ~/Pictures", "gh pr edit --attach", "user-attachments", or "add visual proof without repo clutter".
+description: Use when uploading local screenshots, images, GIFs, videos (.webm/.mp4), or visual artifacts to a GitHub PR or issue body, especially review-ready PR workflows, "attach this screenshot", "add the image from ~/Pictures", "gh pr edit --attach", "user-attachments", or "add visual proof without repo clutter".
 allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh issue view:*), Bash(gh issue edit:*), Bash(gh --version:*), Bash(python3:*), Bash(ls:*), Bash(pwd:*), Read, Glob
 ---
 
@@ -14,7 +14,9 @@ Use native `gh --attach` (gh 2.99+). It uses existing `gh` API auth.
 
 ### 1. Find and inspect the image
 
-Use the path the user gave. For `~/Pictures`, Glob `*.png`, `*.jpg`, `*.jpeg`, `*.webp`, `*.gif`. Ask if several files could match.
+Use the path the user gave. For `~/Pictures`, Glob `*.png`, `*.jpg`, `*.jpeg`, `*.webp`, `*.gif`, `*.webm`, `*.mp4`. `verify-helios` runs write theirs under `~/Pictures/verify-helios/<run>/`. Ask if several files could match.
+
+For a video you can't watch, inspect the screenshot captured just before recording stopped, and confirm the file is non-empty. Keep clips short; GitHub caps video attachments at about 10 MB on free plans and 100 MB on paid plans.
 
 For review-ready PR screenshots, expect `~/Pictures` with descriptive names. Skip `/tmp` unless the user points there or this conversation already wrote the file.
 
@@ -72,7 +74,9 @@ Body not mangled; each image **once**; URLs are `https://github.com/user-attachm
 
 If you see both local refs **and** extra `![filename](https://github.com/user-attachments/assets/...)` lines at the bottom, rewrite failed. Splice the uploaded URLs into the intended captions, drop the appended copies, and `gh pr edit --body-file` the corrected body (no second `--attach`).
 
-Say screenshot when it is a screenshot. Replace stale `[INSERT VIDEO]` placeholders.
+For a video, GitHub renders a player only when the bare `https://github.com/user-attachments/assets/...` URL sits on its own line. If the upload left it inside `![...](...)`, unwrap it and add a one-line caption above it.
+
+Say screenshot when it is a screenshot and video when it is a video. Replace stale `[INSERT VIDEO]` placeholders.
 
 ## Safety notes
 
