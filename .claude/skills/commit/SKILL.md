@@ -14,7 +14,7 @@ User-provided instructions override defaults. Examples:
 - `/commit` - Follow standard process (may create multiple commits)
 - `/commit single commit` - Create exactly one commit for all changes
 - `/commit message: Fix auth bug` - Use the provided commit message
-- `/commit skip approval` - Commit without asking for confirmation
+- `/commit ask first` - Show the plan and wait for confirmation before committing
 
 When arguments are provided, adapt the process accordingly. User intent takes precedence.
 
@@ -47,12 +47,9 @@ In the helios repo, the first commit on a branch uses the PR title format `[cate
    - Draft clear commit messages (max 30 chars each)
    - Group related changes into atomic commits
 
-3. **Present your plan to the user:**
-   - List the files you plan to add for each commit
-   - Show the commit message(s) you'll use
-   - Ask: "I plan to create [N] commit(s) with these changes. Shall I proceed?"
+3. **Commit without asking.** Local commits have standing approval. Ask first only when the user says so, or when the commit would land on `master` or in the main `~/projects/helios` checkout.
 
-4. **Execute upon confirmation:**
+4. **Execute:**
    - Use `git add` with specific files (never use `-A` or `.`)
    - Create commits with your planned messages
    - Show the result with `git log --oneline -n [number]`

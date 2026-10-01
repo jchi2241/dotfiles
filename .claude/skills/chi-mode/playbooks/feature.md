@@ -15,6 +15,7 @@ It runs your existing commands in order. Each step lists only what the command d
 7. **Build.** Run `/implement-plan --deliberate`. It opens one draft PR per PR section, through `commit`, `pr-create`, and `writing-pr-descriptions`. In addition:
    - A shape that differs from the design is a deviation. Stop and report it.
    - The same workaround in several PRs means the design is wrong. Stop and redo step 4.
+   - Before each PR opens, the `panel` reviews it per [`../references/review-before-pr.md`](../references/review-before-pr.md). `/implement-plan` step 2g runs this.
 8. **Extra checks for risky PRs.** These run alongside `/implement-plan`'s own reviews.
    - `blast-radius` for migrations, backfills, auth, and code that old gateways run.
    - `interrogate` when the design is contested, or the PR touches auth, billing, or enforcement.

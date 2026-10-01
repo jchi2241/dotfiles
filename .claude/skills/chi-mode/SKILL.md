@@ -34,7 +34,7 @@ To add a workflow: write `playbooks/<name>.md` as numbered steps that name the s
 
 ## Gates (always stop and ask)
 
-- Creating a branch, commit, push, or PR, unless the operator asked for it in this session.
+- Pushing a branch or opening a PR, unless the operator asked for it in this session.
 - Any request that says "don't make changes yet" or "don't take action yet". Stay read-only.
 - Creating, editing, or moving Jira tickets between sprints.
 - Editing the PRD body. Propose wording in chat instead.
@@ -42,7 +42,7 @@ To add a workflow: write `playbooks/<name>.md` as numbered steps that name the s
 - Enabling a codegate, running a backfill, or anything else that changes production data.
 - A product or preference call that no experiment can settle. Use `AskQuestion` with a recommended option first.
 
-Reversible local work proceeds without asking: reading, research, local edits to thoughts files, prototypes on a scratch branch.
+Reversible local work proceeds without asking: reading, research, local edits to thoughts files, prototypes on a scratch branch, and local branches and commits in a worktree. The operator's standing approval of local commits overrides the Helios rule against unrequested commits. Never commit on `master` or in the main `~/projects/helios` checkout.
 
 ## Sources of truth
 
@@ -69,6 +69,7 @@ Each concern has one owner. Do not restate an owner's rules here.
 | Stages of the work | The commands: `/create-spec`, `/create-plan`, `/implement-plan`, `/review-implementation` |
 | How to cut work into PRs | [`references/helios-prs.md`](references/helios-prs.md) |
 | Per-task implement and review loop | `subagent-driven-development` |
+| Review before a PR opens | [`references/review-before-pr.md`](references/review-before-pr.md) |
 | Commit messages | `commit` |
 | PR title, sections, and `gh pr create` | `pr-create` |
 | PR body prose | `writing-pr-descriptions` |
@@ -88,7 +89,7 @@ The principles index lives in `~/.claude/CLAUDE.md` and is always loaded. Playbo
 - Give each subagent pointers, not pasted content: the plan path, the PR section, the spec sections, and file paths.
 - Delegate implementation through `/implement-plan`, which uses `subagent-driven-development`.
 - You own every subagent's output. Read the diff. Do not repeat its summary as fact.
-- Review is done by a different agent from the author.
+- Review is done by a fresh agent, never the author, given only the diff and the intent. See [`references/review-before-pr.md`](references/review-before-pr.md).
 
 ## Reply
 

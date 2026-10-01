@@ -9,6 +9,6 @@ Apply `principle-fix-root-causes` throughout.
 4. **Write the failing test first**, when a cheap test path exists (`principle-test-behavior-not-implementation`). Confirm it fails for the intended reason. If no cheap path exists, keep the end-to-end reproduction as the check and say why.
 5. **Fix.** The smallest change at the cause. If the fix needs a new branch or flag to fit, stop and apply `principle-refactor-over-accumulation`.
 6. **Prove it.** Re-run the test and the original end-to-end reproduction. On the local stack, run the `verify-helios` skill with step 1 as the baseline and return its verdict. Run `blast-radius` when the fix touches a shared contract or code that old gateways run.
-7. **Ship.** For a UI bug, continue at `ui-change.md` step 4. Otherwise continue at `small-change.md` step 5.
+7. **Ship.** For a UI bug, continue at `ui-change.md` step 4. Otherwise continue at `small-change.md` step 4.
 
 **Reply:** the symptom, the root cause in one sentence, why it did not fail before, the fix, and the before and after evidence.

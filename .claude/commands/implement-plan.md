@@ -312,8 +312,10 @@ If the remaining tasks in the phase are 3 or fewer, skip the checkpoint and comp
 
 After all tasks in a PR are complete:
 
-1. **Run the PR's Verify steps** from its `##### PR-N` section: targeted tests, then the live check. Capture the evidence. If verification fails, stop and report.
-2. **Commit** the PR's changes using `/commit`, if tasks left uncommitted work.
+1. **Commit** the PR's changes using `/commit`, if tasks left uncommitted work.
+2. **Verify and review that commit**, in parallel.
+   - Run the PR's Verify steps from its `##### PR-N` section: targeted tests, then the live check on the claims the diff makes. Capture the evidence. If verification fails, stop and report.
+   - Review with the `panel` per `~/.claude/skills/chi-mode/references/review-before-pr.md`, including its fix, re-verify, and re-review loop. In `--yolo` mode, one `reviewers` agent instead.
 3. **Create the PR** using `/pr-create`, as a draft, with the PR's base branch as its base. Put the live evidence in the Test Plan. Every PR section gets its own PR.
 4. **Record it** in the plan, under the PR section:
 

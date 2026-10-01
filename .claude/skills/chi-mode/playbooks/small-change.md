@@ -8,12 +8,13 @@ For one PR where the approach is clear from the code.
    - Touch only lines you must touch, per Helios `agent/skills/code-review-difficulty/SKILL.md`.
    - Add only code this PR calls or tests.
    - Keep code moves in their own commit.
-4. **Verify.**
+4. **Self-review.** Read `git diff` block by block. Justify every line that is not part of the change. Then commit with the `commit` skill.
+5. **Verify and review the commit.** Run both against the same commit, in parallel.
    - Write a test that fails without the change, per `principle-test-behavior-not-implementation`.
-   - Run the real flow on the local stack, per `principle-prove-it-works`.
+   - Run the `verify-helios` skill on the claims the diff makes, per `principle-prove-it-works`.
    - Run `blast-radius` when the change touches a shared contract, a schema, or code that old gateways run.
-5. **Self-review.** Read `git diff` block by block. Justify every line that is not part of the change.
-6. **Open the PR, when the operator asks.** Use the `commit` skill, then `pr-create`.
+   - Review with one reviewer, and handle its findings, per [`../references/review-before-pr.md`](../references/review-before-pr.md).
+6. **Open the PR, when the operator asks.** Use `pr-create`.
 
 **Escalate** to `feature.md` when the change needs a second PR, a migration, a codegate, a GraphQL change that gateways read, or a product decision.
 
