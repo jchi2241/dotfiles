@@ -1,9 +1,20 @@
 #!/bin/bash
 
-# Skip notification if terminal is already focused
-ACTIVE_WINDOW=$(xdotool getactivewindow getwindowname 2>/dev/null || echo "")
-if [[ "$ACTIVE_WINDOW" =~ [Cc]laude ]] || [[ "$ACTIVE_WINDOW" =~ [Tt]erminator ]] || [[ "$ACTIVE_WINDOW" =~ [Tt]erminal ]] || [[ "$ACTIVE_WINDOW" =~ [Kk]itty ]] || [[ "$ACTIVE_WINDOW" =~ [Aa]lacritty ]] || [[ "$ACTIVE_WINDOW" =~ [Ww]ezterm ]] || [[ "$ACTIVE_WINDOW" =~ ✳ ]]; then
-  exit 0
+# Skip notification if the focused window owns this process (Ghostty, Cursor terminal, ...).
+# Uses the Window Calls GNOME extension, since Wayland hides the focused window from clients.
+# If the lookup fails, fall through and notify: an extra notification beats a missed prompt.
+FOCUSED_PID=$(gdbus call --session --dest org.gnome.Shell \
+  --object-path /org/gnome/Shell/Extensions/Windows \
+  --method org.gnome.Shell.Extensions.Windows.List 2>/dev/null |
+  sed -E "s/^\('(.*)',\)$/\1/" | jq -r '.[] | select(.focus) | .pid' 2>/dev/null)
+if [[ -z "$FOCUSED_PID" ]]; then
+  echo "notify.sh: could not read focused window (is window-calls@domandoman.xyz enabled?)" >&2
+else
+  pid=$$
+  while [[ "$pid" -gt 1 ]]; do
+    [[ "$pid" == "$FOCUSED_PID" ]] && exit 0
+    pid=$(ps -o ppid= -p "$pid" | tr -d ' ')
+  done
 fi
 
 # Read JSON input from stdin
