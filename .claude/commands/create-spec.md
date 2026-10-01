@@ -32,6 +32,8 @@ This is a two-part process:
 
 **You are producing a document that an implementation plan can be written against. By the time this spec is finalized, all design decisions should be made.**
 
+The spec owns requirements and the system-level approach: components, data flow, schema intent, API behavior. The `architect` skill owns the exact shapes that cross PRs or services: type definitions, signatures, column types, GraphQL fields. When the work spans several PRs, describe those shapes here at the level of behavior and leave the final shapes to the architect checkpoint after the spec.
+
 ---
 
 ## Input Context

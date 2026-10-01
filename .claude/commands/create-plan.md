@@ -43,7 +43,7 @@ The UUID is automatically generated when the first task is created in a session.
 Read ~/.claude/thoughts/specs/YYYY-MM-DD_<topic>.md
 ```
 
-The spec is the source of truth for WHAT to build and HOW. Your job is to sequence and decompose the spec into independently-executable tasks, grouped into phases that each produce a reviewable, deployable PR.
+The spec is the source of truth for WHAT to build and HOW. Your job is to sequence and decompose the spec into independently-executable tasks, grouped into PRs that each land on their own, and PRs grouped into phases that each deliver a slice a user can see.
 
 Also read any referenced documents from the spec's frontmatter:
 - `research_doc:` path — for codebase context
@@ -52,19 +52,30 @@ Also read any referenced documents from the spec's frontmatter:
 
 Record all document paths in the plan's References section.
 
-### Phase Design Principles
+### PR and Phase Design Principles
 
-Each phase becomes one branch and one PR. Design phases accordingly:
+A **phase** is a slice a user can see. A **PR** is one branch and one change that lands on its own. A phase ships as one or more PRs. A task is one unit of work inside a PR.
 
-- **Independently reviewable:** A teammate should be able to review the phase's PR without needing context from future phases. The diff should tell a coherent story.
-- **Independently deployable:** The codebase must be in a working, shippable state after each phase merges. No phase should leave behind scaffolding that only becomes functional in a later phase.
-- **Right-sized for review:** Aim for 3-6 tasks per phase. A phase with 8+ tasks likely needs splitting. A phase with 1 task is probably too granular to justify its own PR — exception: database migrations are fine as a standalone phase since they often need to be deployed and verified independently.
-- **Logically cohesive:** Each phase should accomplish a distinct, describable goal — not just "part 1 of the work." If you can't summarize what the phase delivers in one sentence, it needs restructuring.
+For Helios work, also follow `~/.claude/skills/chi-mode/references/helios-prs.md` (migrations, codegates, GraphQL, titles).
+
+Design each PR so it is:
+
+- **Independently reviewable:** A teammate can review the PR without context from later PRs. The diff tells one coherent story.
+- **Independently landable:** The codebase works and ships after the PR merges. No PR leaves scaffolding that only becomes useful in a later PR.
+- **Split by layer:** Backend and frontend go in separate PRs. A backend PR lands on its own when its API is additive, not yet called, or gated. A frontend PR depends on the backend PR it calls.
+- **Right-sized:** One to three tasks, about a day of work. A migration is its own PR, with no application code.
+- **Cohesive:** Summarize what the PR delivers in one sentence. If you can't, restructure it.
+
+Design each phase so it is:
+
+- **A visible slice:** When all of its PRs merge, a user or operator can see the result.
+- **Ordered by dependency:** Its PRs form a stack or a few parallel chains. Name the order.
 
 **Anti-patterns to avoid:**
-- Phase 1 scaffolds empty files, Phase 2 fills them in (Phase 1 isn't useful on its own)
-- Phase 1 adds backend, Phase 2 adds frontend for the same feature (neither is reviewable in isolation — combine them or split by vertical slice)
-- A phase that breaks existing tests or functionality with the intent of fixing it in the next phase
+- A PR scaffolds empty files or stubs, and a later PR fills them in
+- A frontend PR built against a backend API that has not merged
+- A PR that breaks existing tests or functionality with the intent of fixing it in the next PR
+- A "PR" that is only "part 1 of the work," with no describable outcome
 
 ### Step 2: Present Outline for Approval
 
@@ -75,11 +86,13 @@ Before writing the full plan, present a structural outline:
 [1-2 sentence summary]
 
 ## Implementation Phases:
-1. [Phase name] - [what it accomplishes]
-2. [Phase name] - [what it accomplishes]
-3. [Phase name] - [what it accomplishes]
+1. [Phase name] - [what the user sees]
+   - PR-1 [BE] [what it lands] (depends on: none)
+   - PR-2 [FE] [what it lands] (depends on: PR-1)
+2. [Phase name] - [what the user sees]
+   - PR-3 [migration] [what it lands] (depends on: none)
 
-Does this phasing make sense? Should I adjust the order or granularity?
+Does this phasing and PR split make sense? Should I adjust the order or granularity?
 ```
 
 **Wait for user feedback on structure before proceeding.**
@@ -145,6 +158,8 @@ research_doc: <path or null>
 task_list_id: <uuid, fill in after creating tasks>
 phases_total: <N>
 phases_complete: 0
+prs_total: <N>
+prs_complete: 0
 tasks_total: <N>
 tasks_complete: 0
 ---
@@ -181,7 +196,10 @@ tasks_complete: 0
 > Approach: [name of chosen approach from spec]
 > Full details: `<spec path>`, section "Architecture"
 
-[Brief summary of the sequencing strategy — how phases are ordered and why. This is the plan's unique contribution: not WHAT or HOW, but IN WHAT ORDER.]
+[Brief summary of the sequencing strategy — how phases and PRs are ordered and why. This is the plan's unique contribution: not WHAT or HOW, but IN WHAT ORDER.]
+
+### Rollout Order
+[Deploy order, if it differs from merge order: migrations applied, services deployed first, codegates enabled, backfills run. Write "Merge order is deploy order" if nothing differs.]
 
 ---
 
@@ -194,6 +212,7 @@ tasks_complete: 0
 **Claude Code Task:** _#N_ _(fill in after TaskCreate)_
 **Blocked By:** None
 **Phase:** 1
+**PR:** PR-1
 
 #### Description
 [Detailed description of what needs to be done]
@@ -222,6 +241,7 @@ tasks_complete: 0
 **Claude Code Task:** _#N_ _(fill in after TaskCreate)_
 **Blocked By:** Task 1
 **Phase:** 1
+**PR:** PR-1
 
 [Same structure as Task 1...]
 
@@ -229,16 +249,28 @@ tasks_complete: 0
 
 ## Phases
 
-> Each phase = one branch = one PR. Every phase must leave the codebase in a working, deployable state and be reviewable on its own.
+> Each phase = a slice a user can see, shipped as one or more PRs. Each PR = one branch = one change that lands on its own and is reviewable on its own.
 
 ### Phase 1: [Descriptive Name]
 
 #### Overview
-[What this phase accomplishes — one sentence describing the deliverable]
+[What the user sees when this phase is done — one sentence]
 
-#### Tasks in This Phase
-- Task 1: [Task name]
-- Task 2: [Task name]
+#### PRs in This Phase
+
+##### PR-1: [Descriptive Name] [BE]
+- **Delivers:** [one sentence]
+- **Depends on:** None (base: `master`)
+- **Jira:** [story key]
+- **Tasks:** Task 1, Task 2
+- **Verify:** [targeted tests, and the live check with the evidence to capture]
+
+##### PR-2: [Descriptive Name] [FE]
+- **Delivers:** [one sentence]
+- **Depends on:** PR-1 (base: PR-1's branch)
+- **Jira:** [story key]
+- **Tasks:** Task 3
+- **Verify:** [CCT tests, and screenshots of each state]
 
 #### Success Criteria
 
@@ -323,6 +355,7 @@ tasks_complete: 0
 
 4. **Update frontmatter counters:**
    - Increment `tasks_complete`
+   - Increment `prs_complete` if the PR's tasks are done and the PR is opened
    - Increment `phases_complete` if phase is done
    - Set `status: complete` when all tasks done
 
@@ -388,7 +421,7 @@ When the plan is written and tasks are created:
 2. Update the frontmatter fields:
    - `task_list_id`: the UUID
    - `status`: `in_progress`
-   - `phases_total` and `tasks_total`: actual counts
+   - `phases_total`, `prs_total`, and `tasks_total`: actual counts
 
 End your response with:
 

@@ -1,6 +1,7 @@
 ---
 name: ace-design-sheets
-description: Writes software engineering design sheets, specs, architecture notes, and Plan-mode design text in Attempto Controlled English (ACE). Use when the user asks for a design document, design sheet, design review, architecture decision, technical spec, planning doc, or Plan-mode design work.
+description: Writes software engineering design sheets, specs, architecture notes, and Plan-mode design text in Attempto Controlled English (ACE). Invoke explicitly with /ace-design-sheets.
+disable-model-invocation: true
 ---
 
 # ACE Software Engineering Design Sheets
@@ -9,7 +10,7 @@ Write every software engineering design sheet in Attempto Controlled English (AC
 
 A design sheet is a decision record. Another engineer must implement the change from the sheet without a meeting.
 
-Do not use this skill for code, commit messages, pull request bodies, or ordinary chat explanations. For teaching explanations, use the senior-engineer-explanations skill instead.
+Do not use this skill for code, commit messages, pull request bodies, or ordinary chat explanations.
 
 ## When to write a sheet
 

@@ -22,9 +22,11 @@ The full workflow pipeline:
 
 **When to start with `/brainstorm`:** You have a fuzzy problem or feature and aren't sure where the limits are. Skip it when the task is already crisp — go straight to `/map-codebase` or `/create-spec`.
 
-**Phase lifecycle:** `/implement-plan` executes one phase per session, then stops. `/continue-plan` resumes in a fresh session with a cross-phase integration check. Repeat until all phases are done.
+**Phase lifecycle:** A phase is a slice a user can see, shipped as several PRs (backend and frontend split). `/implement-plan` opens one PR per PR section as it goes. In `--deliberate` mode it executes one phase per session, then stops. `/continue-plan` resumes in a fresh session with a cross-phase integration check. Repeat until all phases are done.
 
-**Standalone tools** (usable anytime): `/review-implementation`, `/commit`, `/handoff`, `/worktree`, `/review-plan`, `/continue-plan`
+**Standalone tools** (usable anytime): `/review-implementation`, `/commit`, `/handoff`, `/worktree`, `/continue-plan`
+
+This pipeline is the feature workflow. For other kinds of work (UI change, bug fix, investigation, PR review, incident, hotfix), see the playbooks in `~/.claude/skills/chi-mode/SKILL.md`.
 
 ---
 

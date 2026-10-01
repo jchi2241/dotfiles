@@ -14,11 +14,28 @@ When writing anything on Justin's behalf (Slack messages, PRs, GitHub review com
 ## General Guidelines
 
 - **Evidence-Based Reasoning:** Ground all findings and decisions on concrete evidence from search, grep, tests, and tools.
-- **No Shortcuts (Instant Execution):** Prioritize quality, simplicity, robustness, and maintainability over development cost. Do not take shortcuts based on human-like time constraints (e.g., assuming a proper solution takes too long to build). You write code instantly; always choose the correct, long-term architectural solution.
-- **Design with strong invariants:** Do not write code to "handle" invalid data if that data shouldn't exist in the first place. Use the type system, schemas, and strict invariants to make bad states impossible to represent. 
-- **Error often and early:** Prefer explicit errors and failing fast.
-- **Refactor over Accumulation:** Do not paper over unclear designs with more machinery (i.e., appending new conditionals, wrappers, or fallbacks to hide a fundamental architectural flaw). Refactor the underlying flaw itself.
-- **Human Comprehensibility (Anti-Slop):** Write code optimized for human legibility and comprehension. A human must be able to easily comprehend and explain your code without needing an LLM to translate it first.
-- **E2E Bug Reproduction:** Always reproduce bugs in an E2E setting mimicking the end-user experience before fixing them to ensure the real problem is solved.
+- **No Shortcuts (Instant Execution):** Prioritize quality, simplicity, robustness, and maintainability over development cost. Do not take shortcuts based on human-like time constraints. You write code instantly; always choose the correct, long-term architectural solution.
 - **One Sentence Per Line:** Put each full sentence on its own line when writing or editing long Markdown files.
+
+## Workflows
+
+For a Helios or Analyst coding task, or when the user says `/chi-mode`, read `~/.claude/skills/chi-mode/SKILL.md` and pick a playbook.
+
+## Principles
+
+When a trigger below matches, read the linked file in full before you act. It holds the rule. In your reply, name each principle that changed a decision.
+
+| Principle | Trigger | File |
+|---|---|---|
+| Laziest correct solution | Writing, refactoring, or reviewing any code | `~/.claude/skills/ponytail/SKILL.md` |
+| Readable code | Writing or reviewing any code | `~/.claude/skills/principle-readable-code/SKILL.md` |
+| Strong invariants | Designing types, schemas, signatures, columns, API shapes | `~/.claude/skills/principle-strong-invariants/SKILL.md` |
+| Fail early | Error handling, validation, defaults, fallbacks, retries | `~/.claude/skills/principle-fail-early/SKILL.md` |
+| Refactor over accumulation | Adding a conditional, wrapper, flag, or fallback to make new work fit old code | `~/.claude/skills/principle-refactor-over-accumulation/SKILL.md` |
+| Fix root causes | A bug, failing test, or unexpected behavior | `~/.claude/skills/principle-fix-root-causes/SKILL.md` |
+| Only referenced code | Deciding what goes into a PR or commit | `~/.claude/skills/principle-only-referenced-code/SKILL.md` |
+| Test behavior, not implementation | Writing, changing, or keeping a test | `~/.claude/skills/principle-test-behavior-not-implementation/SKILL.md` |
+| Prove it works | Before saying a task is done | `~/.claude/skills/principle-prove-it-works/SKILL.md` |
+
+To add a principle: create `~/.claude/skills/principle-<name>/SKILL.md` with `disable-model-invocation: true`, then add one row here.
 

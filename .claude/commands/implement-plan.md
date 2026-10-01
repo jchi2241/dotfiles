@@ -22,7 +22,7 @@ Parse `$ARGUMENTS` for mode flags. The plan path is the first non-flag argument.
 | **Standard** | _(default)_ | Full ceremony. Per-task two-stage review + cross-task integration review + batch checkpoints every 3 tasks. Single orchestrator session across all phases. Pauses for user confirmation at batch checkpoints and commit gates. |
 | **Deliberate** | `--deliberate` | Everything in Standard + session ENDS after each phase. On resume, cross-phase integration check validates previous work before continuing. Use `/continue-plan` to resume in a fresh session. |
 | **Auto** | `--auto` | Everything in Standard (per-task spec + code quality reviews, cross-task integration review) but UNATTENDED. Auto-continues past batch checkpoints and commit gates without waiting for user confirmation. Single orchestrator session across all phases. Only stops on failures or blocking review issues. |
-| **YOLO** | `--yolo` | Self-review only (no external reviews). Commits at end. No session breaks. Only stops on failures. |
+| **YOLO** | `--yolo` | Self-review only (no external reviews). Opens each PR without pausing. No session breaks. Only stops on failures. |
 
 **Parsing:** Split `$ARGUMENTS` on whitespace. Look for `--deliberate`, `--yolo`, or `--auto`. Everything else is the plan file path. The three mode flags are mutually exclusive — if more than one is present, error and ask user to pick one.
 
@@ -35,7 +35,7 @@ Before implementing, verify:
 1. **Plan file exists** at the provided path
 2. **Load plan metadata only — do NOT read the full plan file.** The plan can be thousands of lines; pulling it into the orchestrator's context defeats subagent isolation and is the single largest source of orchestrator token bloat. Instead:
    - `Read` the plan with `limit: 50` to capture frontmatter + overview. Extract `task_list_id`, `spec`, `research_doc` from frontmatter.
-   - `Grep` the plan for `^## Phase|^### Task` with `output_mode: content, -n: true` to get phase/task structure without bodies.
+   - `Grep` the plan for `^### Phase|^##### PR-|^- \*\*(Depends on|Tasks):|^### Task|^\*\*PR:\*\*` with `output_mode: content, -n: true` to get the phase, PR, and task structure without bodies.
    - Subagents read their own task sections on dispatch. The orchestrator never needs full task descriptions.
 3. **Task List path** is recorded in the plan header
 4. **Tasks exist** — check the task list directory has JSON files
@@ -143,7 +143,7 @@ ISSUES:
 
 ### Step 1b: Branch Setup
 
-**Uses: `stacked-branches` skill** — see `~/.claude/skills/stacked-branches/SKILL.md` for conventions.
+**Uses: `gh-stack` skill** — see `~/.claude/skills/gh-stack/SKILL.md` for stack conventions.
 
 **Detect environment:**
 
@@ -162,12 +162,15 @@ git rev-parse --git-common-dir
 
 **In `--auto` mode:** Do not block on this prompt. Default to **branch-only** (create branches in the current repo directly) and note the choice in the status report. If the user wanted worktree isolation for an unattended run, they should start inside a worktree before invoking.
 
-**Branch creation (all flows):**
+**Branch creation (all flows):** one branch per PR section, not per phase.
 
-For Phase 1: `git checkout -b "chi/${SLUG}-phase-1"`
-For resume (Phase N > 1): verify current branch matches expected phase, checkout if needed.
+- A PR with no dependency starts from `master`: `git checkout -b "chi/${SLUG}-pr-1" origin/master`
+- A PR that depends on another PR stacks on that PR's branch: `git checkout -b "chi/${SLUG}-pr-2" "chi/${SLUG}-pr-1"`
+- If the plan says a different base, use the plan's base.
 
-**Pass to all subagents:** working directory and current phase/task numbers for commit prefixes.
+For resume: find the first PR with incomplete tasks, verify its branch exists and is checked out, and create it from its base if it does not exist.
+
+**Pass to all subagents:** working directory, branch, and current phase/PR/task numbers for commit prefixes (`PN/PR-M/TK`).
 
 ### Step 2: Execute Tasks in Current Phase
 
@@ -186,7 +189,9 @@ Each subagent gets a fresh context window. They read the plan, the spec, the tem
 
 **Batch size:** 3 tasks. After every 3 completed tasks within a phase, pause for a batch checkpoint (see Step 2f).
 
-For each unblocked, pending task in the current phase:
+**Work PR by PR.** Within the current phase, take the lowest PR whose dependencies are done. Check out its branch (Step 1b). Run its tasks, then finish the PR (Step 2g) before you start a PR that depends on it. PRs with no dependency between them may run in parallel only in separate worktrees.
+
+For each unblocked, pending task in the current PR:
 
 #### 2a. Dispatch Implementer
 
@@ -303,6 +308,24 @@ Continue with next batch?
 
 If the remaining tasks in the phase are 3 or fewer, skip the checkpoint and complete the phase (Step 3 handles end-of-phase reporting).
 
+#### 2g. PR Completion
+
+After all tasks in a PR are complete:
+
+1. **Run the PR's Verify steps** from its `##### PR-N` section: targeted tests, then the live check. Capture the evidence. If verification fails, stop and report.
+2. **Commit** the PR's changes using `/commit`, if tasks left uncommitted work.
+3. **Create the PR** using `/pr-create`, as a draft, with the PR's base branch as its base. Put the live evidence in the Test Plan. Every PR section gets its own PR.
+4. **Record it** in the plan, under the PR section:
+
+```markdown
+**Branch:** `chi/<slug>-pr-<N>`
+**PR:** [PR URL]
+**Evidence:** [command or screenshot summary]
+```
+
+5. Increment `prs_complete` in the frontmatter.
+6. **Gate:** in standard and deliberate modes, report the PR URL and wait for confirmation before starting the next PR. In `--auto` and `--yolo` modes, continue.
+
 ### Step 3: Phase Completion
 
 After all tasks in a phase complete:
@@ -384,8 +407,8 @@ Update the plan file at every phase boundary (both modes):
 #### Phase [N] Summary
 > Completed YYYY-MM-DD
 
-**Branch:** `chi/<slug>-phase-<N>`
-**PR:** [PR URL]
+**PRs:**
+- PR-[M] [BE/FE/migration]: `chi/<slug>-pr-<M>` — [PR URL]
 **Tasks completed:** [list with one-line outcomes]
 **Deviations from plan:** [any significant changes vs. what was planned]
 **Gotchas for next phase:** [anything the next session should know]
@@ -394,23 +417,17 @@ Update the plan file at every phase boundary (both modes):
 
 This ensures the plan file is always up to date — critical for deliberate mode where the next session reads it cold, and useful in standard mode for tracking.
 
-**3c. Commit, PR, and Phase Transition**
+**3c. Phase Transition**
 
-1. **Commit** phase changes using `/commit`
-2. **Create PR** for the phase using `/pr-create`. Every phase gets its own PR — this keeps reviews scoped and provides a clear audit trail per phase.
-3. **Create next phase branch** (if not the last phase), stacked on current tip:
+Every PR in the phase was already opened in Step 2g. Do not open a phase-level PR.
 
-```bash
-git checkout -b "chi/${SLUG}-phase-$((N+1))"
-```
-
-This ensures the new branch starts from all of phase N's work. See `stacked-branches` skill for conventions.
-
-4. **Report:**
+1. **Confirm** every PR in the phase has a PR URL recorded in the plan.
+2. The next phase's first PR branches from its own base, per Step 1b. See the `gh-stack` skill for stack conventions.
+3. **Report:**
 
 ```
 Phase [N] complete and reviewed. [PASSED / N warnings]
-Committed and PR created for branch chi/<slug>-phase-<N>.
+PRs: [PR-M URL], [PR-M+1 URL], ...
 ```
 
 **In standard and auto modes:** Proceed to next phase. In auto mode, do this immediately without pausing for confirmation.
@@ -431,22 +448,22 @@ After all phases complete:
 
 1. Update plan frontmatter: `status: complete`
 2. Update plan Changelog with completion summary
-3. **Commit and PR** for the final phase (same as 3c — commit, create PR, record in Phase Summary)
-4. **Collect PR data** — read each phase's Summary section from the plan file to gather branch names, PR URLs, and task outcomes
+3. **Confirm** every PR section has a PR URL (Step 2g)
+4. **Collect PR data** — read each PR section and phase Summary from the plan file to gather branch names, PR URLs, and task outcomes
 5. Present final status and Slack-ready summary:
 
 ```
 ## Implementation Complete
 
-All [N] phases done. [N] tasks executed.
+All [N] phases done. [N] PRs opened. [N] tasks executed.
 
-### Phase Breakdown
+### PR Breakdown
 
-| Phase | Branch | PR | Tasks |
-|-------|--------|----|-------|
-| 1. [Phase name] | `chi/<slug>-phase-1` | [PR URL] | [X] tasks |
-| 2. [Phase name] | `chi/<slug>-phase-2` | [PR URL] | [X] tasks |
-| ... | ... | ... | ... |
+| Phase | PR | Layer | Branch | Link | Tasks |
+|-------|----|-------|--------|------|-------|
+| 1. [Phase name] | PR-1 | BE | `chi/<slug>-pr-1` | [PR URL] | [X] tasks |
+| 1. [Phase name] | PR-2 | FE | `chi/<slug>-pr-2` | [PR URL] | [X] tasks |
+| ... | ... | ... | ... | ... | ... |
 
 ### Slack Summary (copy-paste ready)
 
@@ -468,7 +485,7 @@ Suggested next steps:
 - /review-implementation [plan_path] (comprehensive final review)
 ```
 
-**Generating the Slack summary:** For each phase, read the PR title from `gh pr view <URL> --json title`. Use GitHub markdown link syntax: `[PR title](URL)`. Group PRs by repo with italic repo headers (`*repo:*`). No per-PR descriptions, just the linked title. If the spec references a Google Doc PRD, include it as a `*PRD*:` link at the end. Keep the tone lowercase and work-casual - friendly and concise, not formal. No capitalized sentences. Use colons, not em dashes.
+**Generating the Slack summary:** For each PR, read the PR title from `gh pr view <URL> --json title`. Use GitHub markdown link syntax: `[PR title](URL)`. Group PRs by repo with italic repo headers (`*repo:*`). No per-PR descriptions, just the linked title. If the spec references a Google Doc PRD, include it as a `*PRD*:` link at the end. Keep the tone lowercase and work-casual - friendly and concise, not formal. No capitalized sentences. Use colons, not em dashes.
 
 ---
 

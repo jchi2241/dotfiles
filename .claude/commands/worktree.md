@@ -47,27 +47,15 @@ git -C PATH branch --show-current
 git -C PATH log --oneline -3
 ```
 
-## Step 3: Set up environment
+## Step 3: Check setup
 
-Check if the worktree is missing `.envrc.private` (this file is gitignored and won't be copied by `git worktree add`). If the main repository has one, symlink it:
+For **helios** worktrees, follow the `helios-worktrees` skill. It owns the `wta` setup and how to repair a worktree that is missing it.
+
+For other repos, check whether the worktree is missing `.envrc.private` (gitignored, so `git worktree add` does not copy it). If the main repository has one, symlink it, then allow direnv:
 
 ```bash
-# Only if .envrc.private exists in the main repo and not in the worktree
 ln -s MAIN_REPO_PATH/.envrc.private WORKTREE_PATH/.envrc.private
-```
-
-Then allow direnv for the worktree directory so the environment loads correctly:
-
-```bash
 cd WORKTREE_PATH && direnv allow
-```
-
-This ensures tokens like `FONTAWESOME_TOKEN` and `NPM_TOKEN` are available (they're defined in `.envrc.private` and referenced by `.npmrc`).
-
-For **helios** worktrees, also install frontend dependencies:
-
-```bash
-cd WORKTREE_PATH && make frontend-deps-update
 ```
 
 ## Step 4: Confirm context

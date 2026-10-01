@@ -18,6 +18,13 @@ Use this for Jira tickets about the SingleStore Analyst / Aura Analyst / SQL Bot
   - `Task` for technical follow-up/refactor
 - Search before creating when the request may duplicate prior Analyst work.
 
+## Granularity
+
+- The story is the finest-grained ticket. Do not create subtasks.
+- Several PRs reference the same story key in their titles. Only the last PR of the story uses `#closes`.
+- Implementation details live in the spec and the plan, not in Jira. A story names its outcome and links the spec.
+- A migration apply ticket is the exception. File it with the `helios-migration-jira-ticket` skill.
+
 ## Known Analyst Context
 
 Analyst spans:
@@ -146,5 +153,6 @@ status needs a second step.
 4. Re-read the issue to confirm epic, sprint, assignee, and status all stuck —
    board automation can override the status you just set.
 
-When the ticket has a PR, put the key in the PR title (`MCDB-xxxxx: ...`) so
-Helios CI links them; add the PR URL under `## Related` in the description.
+When the ticket has a PR, put the key at the end of the PR title
+(`[category] summary MCDB-xxxxx`, per `pr-create`) so Helios CI links them; add
+the PR URL under `## Related` in the description.

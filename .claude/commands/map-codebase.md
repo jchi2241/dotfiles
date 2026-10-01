@@ -69,11 +69,13 @@ After the frontmatter, include (as relevant to the topic):
 
 ## Instructions
 
-1. Thoroughly explore the codebase using Glob, Grep, and Read tools
+1. Explore with the `how` skill's method: read `~/.claude/skills/how/SKILL.md`, assess complexity, and for a complex area spawn its parallel explorers with `references/explorer-prompt.md`. Skip its explainer step; this command writes the map instead.
 2. Trace connections between components
 3. Document concrete file paths and line numbers
 4. Write the report in clear, factual prose
 5. Save to `~/.claude/thoughts/research/YYYY-MM-DD_<topic>.md`
+
+Use `/map-codebase` when a spec will be written against the map. For a question you only need answered in chat, use the `how` skill directly.
 
 ---
 

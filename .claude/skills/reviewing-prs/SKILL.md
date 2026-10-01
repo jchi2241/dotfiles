@@ -5,7 +5,7 @@ description: Use when the user asks to review a pull request, code-review a GitH
 
 # Reviewing PRs
 
-For reading someone else's PR. Shipping your own Helios frontend PR is `helios-frontend-review-pr`. Complexity-only review is `ponytail-review`.
+For reading someone else's PR. Shipping your own Helios frontend PR is `chi-mode/playbooks/ui-change.md`. Complexity-only review is `ponytail-review`.
 
 ## Order
 
