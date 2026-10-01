@@ -18,6 +18,8 @@ Reproduce the bug the way the user hits it. Then fix the cause where every calle
 4. Fix it once, in the shared code.
 5. Prove it with the same end-to-end reproduction, plus a test that fails without the fix.
 
+**After two failed fixes:** write down the one assumption both fixes shared, and test that assumption before you try a third fix. Each failure under a shared assumption is evidence against it.
+
 **Tells you fixed a symptom:**
 
 - A `nil` check around a crash, when the value should never be `nil`.

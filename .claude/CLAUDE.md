@@ -51,6 +51,8 @@ When a trigger below matches, read the linked file in full before you act. It ho
 | Strong invariants | Designing types, schemas, signatures, columns, API shapes | `~/.claude/skills/principle-strong-invariants/SKILL.md` |
 | Fail early | Error handling, validation, defaults, fallbacks, retries | `~/.claude/skills/principle-fail-early/SKILL.md` |
 | Refactor over accumulation | Adding a conditional, wrapper, flag, or fallback to make new work fit old code | `~/.claude/skills/principle-refactor-over-accumulation/SKILL.md` |
+| Make operations idempotent | Backfills, install hooks, data migrations, retries, upserts, setup scripts | `~/.claude/skills/principle-make-operations-idempotent/SKILL.md` |
+| Build the lever | More than a few obvious edits, or the same change across many files, rows, or repos | `~/.claude/skills/principle-build-the-lever/SKILL.md` |
 | Fix root causes | A bug, failing test, or unexpected behavior | `~/.claude/skills/principle-fix-root-causes/SKILL.md` |
 | Only referenced code | Deciding what goes into a PR or commit | `~/.claude/skills/principle-only-referenced-code/SKILL.md` |
 | Test behavior, not implementation | Writing, changing, or keeping a test | `~/.claude/skills/principle-test-behavior-not-implementation/SKILL.md` |

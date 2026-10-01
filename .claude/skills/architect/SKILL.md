@@ -8,6 +8,16 @@ disable-model-invocation: true
 
 Design before implementing. Sketch types, function signatures, class shapes, and module boundaries with `not implemented` bodies and pseudocode. Synthesize across multiple model perspectives, then fill in code against the chosen sketch. If implementation proves the sketch wrong, throw it out and redesign.
 
+## When to use
+
+Use it when the right shape is not obvious and building the wrong one costs more than sketching three:
+
+- A shape that more than one PR or service uses.
+- An architectural choice with several viable approaches.
+- A UI interaction with no prior art in the codebase, where the feel decides it. Sketch competing prototypes.
+
+Skip it for mechanical work on an established pattern, a bug fix or refactor with a clear target, and changes where the constraints allow only one shape.
+
 ## Start
 
 Open a todolist with one entry per phase before starting.

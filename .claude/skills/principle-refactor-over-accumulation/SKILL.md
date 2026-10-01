@@ -12,10 +12,11 @@ When a new requirement does not fit the existing design, change the design. Do n
 
 **How:**
 
-1. Ask what the design would look like if this requirement had existed from day one.
-2. If that design is different, refactor toward it first, in its own PR or commit, with no behavior change.
-3. Then add the requirement on top of the refactored code. It should now be a small change.
-4. Remove the old path in the same wave. Do not keep a compatibility layer unless a mixed-version fleet needs it, and then gate it.
+1. Subtract first. Delete the dead code, redundant checks, and unused options in the area, then look again. The day-one design is often obvious once they are gone.
+2. Ask what the design would look like if this requirement had existed from day one.
+3. If that design is different, refactor toward it first, in its own PR or commit, with no behavior change.
+4. Then add the requirement on top of the refactored code. It should now be a small change.
+5. Remove the old path in the same wave. Do not keep a compatibility layer unless a mixed-version fleet needs it, and then gate it.
 
 **Tells:**
 
