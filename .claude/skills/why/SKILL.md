@@ -9,7 +9,7 @@ Investigate the motivation and intent behind code.
 
 Companion to the `how` skill. `how` answers what the code does and how it works. `why` answers what forces led to its shape.
 
-Investigators use `cursor-grok-4.6-high`. The synthesizer uses `claude-opus-5-5-low`. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used. Families: `claude-*`, `gpt-*`, and `cursor-grok-*`. Local evidence sources are listed at the top of `references/source-playbook.md`.
+Investigators use `cursor-grok-4.6-high`. The synthesizer uses `claude-opus-5-5-medium`. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used. Families: `claude-*`, `gpt-*`, and `cursor-grok-*`. Local evidence sources are listed at the top of `references/source-playbook.md`.
 
 ## Operating Posture
 
@@ -124,7 +124,7 @@ If your scope assessment suggests a single-commit trivial target where the PR de
 Spawn one synthesizer subagent:
 
 - `subagent_type`: `generalPurpose`
-- `model`: `claude-opus-5-5-low`
+- `model`: `claude-opus-5-5-medium`
 - `readonly`: `false` (agent mode). The synthesizer's quality check spot-verifies citations, which can require MCP access. Readonly/Ask mode strips MCPs and defeats that.
 
 The synthesizer gets:

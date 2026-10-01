@@ -1,6 +1,6 @@
 ---
 description: Review and push dotfiles configuration changes
-allowed-tools: Bash(git:*), Bash(cd:*), Read, AskUserQuestion
+allowed-tools: Bash(git:*), Bash(cd:*), Bash(~/.dotfiles/scripts/check-claude-skills.py), Read, AskUserQuestion
 ---
 
 # Dotfiles Sync
@@ -14,6 +14,10 @@ Run these commands to gather the current state:
 !`cd ~/.dotfiles && git status --short`
 
 !`cd ~/.dotfiles && git diff --stat`
+
+!`~/.dotfiles/scripts/check-claude-skills.py`
+
+If the skills check reports problems, fix them before committing. The pre-commit hook runs the same check.
 
 ## Step 2: Show detailed changes
 

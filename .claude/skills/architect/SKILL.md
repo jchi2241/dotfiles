@@ -30,7 +30,7 @@ Skip Phase A only when the work is genuinely greenfield with no surrounding syst
 
 Run the **arena** skill with the design-sketch task and the Phase A grounding artifacts. Pass `references/runner-prompt.md` as each runner's prompt. Each candidate produces a design package shaped per `references/rationale-template.md`.
 
-Run one candidate each on `claude-opus-5-5-low`, `gpt-5.6-sol-xhigh`, and `cursor-grok-4.6-high`, in place of the arena skill's default runners. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used.
+Run one candidate each on `claude-opus-5-5-medium`, `gpt-5.6-sol-xhigh`, and `cursor-grok-4.6-high`, in place of the arena skill's default runners. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used.
 
 Design it twice. Require at least two structurally distinct candidates before synthesis, even when the first looks sufficient. Whole-shape alternatives, not point fixes inside one shape.
 

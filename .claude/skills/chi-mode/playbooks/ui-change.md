@@ -6,7 +6,7 @@ When the user asked for a PR ("open a PR", "take it to the finish line"), finish
 1. **Survey.** Read the page, route, data source, nearby specs, mocks, and product intent before editing. For a bug, reproduce it in the mocked app first (`principle-fix-root-causes`).
 2. **Change.** Make the smallest product-correct change. Follow `helios-frontend-conventions`.
 3. **Test.**
-   - Default: add or update a focused CCT for the user-visible behavior. Read and follow the repo-local `cct-writer` skill first. Do not edit `cct-writer`.
+   - Default: add or update a focused CCT for the user-visible behavior. Read and follow Helios `agent/skills/frontend-cct-instructions/SKILL.md` first.
    - Skip the CCT for portal admin-only features, very minor tweaks, copy-only changes, or setups that would be artificial. State the reason.
    - Prove red then green when practical.
 4. **Check.** Run both, from the worktree root:

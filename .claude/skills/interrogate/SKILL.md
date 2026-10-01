@@ -37,7 +37,7 @@ Launch all three reviewers in a single message using the Task tool.
 
 | Subagent | Model |
 |----------|-------|
-| Reviewer A | `claude-opus-5-5-low` |
+| Reviewer A | `claude-opus-5-5-medium` |
 | Reviewer B | `gpt-5.6-sol-xhigh` |
 | Reviewer C | `cursor-grok-4.6-high` |
 

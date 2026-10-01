@@ -25,7 +25,7 @@ The N candidates will receive the same prompt, so the prompt is the contract.
 
 1. State the artifact each candidate is producing.
 2. Derive the rubric. State what success looks like for *this* task, then turn it into 3-6 concrete gradeable criteria. The rubric is the picker's tool in Phase D. Candidates only see the task.
-3. Pick the runners. Default to one each on `claude-opus-5-5-low`, `gpt-5.6-sol-xhigh`, and `cursor-grok-4.6-high`. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used. Families: `claude-*`, `gpt-*`, and `cursor-grok-*`. With no family match, use `claude-opus-5-5-low`. Spawn more when the arena covers multiple design directions. Same model N times when the work is generation-bound rather than judgment-sensitive. When `architect` calls this skill, use the runners it names instead of these defaults.
+3. Pick the runners. Default to one each on `claude-opus-5-5-medium`, `gpt-5.6-sol-xhigh`, and `cursor-grok-4.6-high`. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used. Families: `claude-*`, `gpt-*`, and `cursor-grok-*`. With no family match, use `claude-opus-5-5-medium`. Spawn more when the arena covers multiple design directions. Same model N times when the work is generation-bound rather than judgment-sensitive. When `architect` calls this skill, use the runners it names instead of these defaults.
 4. Assign output paths. Each candidate writes only to its own location: a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`.
 
 ## Phase B: Fan out
@@ -38,7 +38,7 @@ If a candidate fails to produce output, proceed with N-1 and note the dropout in
 
 ## Phase C: Cross-judge
 
-After all Phase B candidates complete, choose one judge from `claude-opus-5-5-low`, `gpt-5.6-sol-xhigh`, and `cursor-grok-4.6-high`. Prefer a different model family from the parent's. Spawn one readonly judge subagent on that model. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's reading in Phase D, not with the candidates themselves. Don't spawn the judge while candidates are still writing.
+After all Phase B candidates complete, choose one judge from `claude-opus-5-5-medium`, `gpt-5.6-sol-xhigh`, and `cursor-grok-4.6-high`. Prefer a different model family from the parent's. Spawn one readonly judge subagent on that model. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's reading in Phase D, not with the candidates themselves. Don't spawn the judge while candidates are still writing.
 
 ## Phase D: Pick a base
 

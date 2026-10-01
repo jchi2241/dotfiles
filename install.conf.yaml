@@ -109,6 +109,10 @@
 
 - shell:
     -
+        command: git -C ~/.dotfiles config core.hooksPath .githooks
+        description: Enabling dotfiles git hooks...
+        quiet: false
+    -
         command: |
             if ! grep -qE 'Ubuntu|Debian' /etc/os-release 2>/dev/null; then
                 echo "Warning: This install script is designed for Ubuntu/Debian. Some commands may fail."

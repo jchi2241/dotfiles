@@ -75,6 +75,8 @@ Each concern has one owner. Do not restate an owner's rules here.
 | Capturing UI screenshots | `helios-ui-visual-proof` |
 | Uploading screenshots to PRs | `pr-image-upload` |
 | Stacks | `gh-stack` |
+| Turning session corrections into skill edits | `/reflect` |
+| Checking skills for broken references | `~/.dotfiles/scripts/check-claude-skills.py` (runs on every dotfiles commit) |
 | Helios repo rules (codegates, GraphQL, migrations, testing) | Helios `agent/skills/` and `agents/policies/` |
 
 ## Principles

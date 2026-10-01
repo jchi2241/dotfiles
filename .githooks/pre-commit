@@ -1,0 +1,4 @@
+#!/bin/sh
+if git diff --cached --name-only | grep -q '^\.claude/\|^scripts/check-claude-skills\.py$'; then
+	exec "$(git rev-parse --show-toplevel)/scripts/check-claude-skills.py"
+fi

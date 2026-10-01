@@ -7,7 +7,7 @@ description: "Use for \"how does X work\", code walkthroughs before changing som
 
 Explore the codebase to answer "how does X work?" questions. Produce architectural explanations at the level of a senior engineer onboarding onto a subsystem, enough to build a working mental model, not so much that it reads like annotated source code.
 
-Explorers use `cursor-grok-4.6-high`. The explainer uses `claude-opus-5-5-low`. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used. Families: `claude-*`, `gpt-*`, and `cursor-grok-*`.
+Explorers use `cursor-grok-4.6-high`. The explainer uses `claude-opus-5-5-medium`. If the Task tool rejects a slug, use the closest valid slug of the same family and say which one you used. Families: `claude-*`, `gpt-*`, and `cursor-grok-*`.
 
 ## Step 1. Assess Complexity
 
@@ -33,7 +33,7 @@ Each explorer gets the prompt in `references/explorer-prompt.md` with its angle 
 Spawn one Task subagent that explores and explains in one pass:
 
 - `subagent_type`: `generalPurpose`
-- `model`: `claude-opus-5-5-low`
+- `model`: `claude-opus-5-5-medium`
 - `readonly`: `true`
 
 Build its prompt from `references/explainer-prompt.md` without the explorer-findings section. Go to Step 4.
@@ -43,7 +43,7 @@ Build its prompt from `references/explainer-prompt.md` without the explorer-find
 Once all explorers have returned, spawn one Task subagent to synthesize their findings into one explanation:
 
 - `subagent_type`: `generalPurpose`
-- `model`: `claude-opus-5-5-low`
+- `model`: `claude-opus-5-5-medium`
 - `readonly`: `true`
 
 Build its prompt from `references/explainer-prompt.md` with every explorer's findings filled in.
