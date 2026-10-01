@@ -5,6 +5,7 @@ The maintained recipes for verifying user-facing Helios behavior on the local st
 | Feature | File |
 |---|---|
 | Analyst chat turn, end to end | [`analyst-chat.md`](analyst-chat.md) |
+| Analyst budget: contracted vs on-demand, limits, enforcement | [`analyst-budget.md`](analyst-budget.md) |
 
 ## Baseline
 
