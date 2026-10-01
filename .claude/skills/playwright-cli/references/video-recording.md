@@ -22,7 +22,7 @@ playwright-cli video-stop --filename=demo.webm
 
 ## Quality
 
-The recorder runs at 25 fps (VP8, about 1 Mbps). It sends a frame only when the page repaints, so typing and animations land at around 16–19 distinct frames per second. `video-start` takes no size and scales the viewport down to 800 px on its longest side, which blurs UI text. For legible text, record at viewport size from `run-code`:
+The recorder runs at 25 fps (VP8, live encode capped near 1 Mbps). Under continuous animation it delivers 25 distinct frames per second; slower-changing pages show fewer distinct frames only because the page repaints less often. `video-start` takes no size and scales the viewport down to 800 px on its longest side, which blurs UI text. For legible text, record at viewport size from `run-code`:
 
 ```bash
 playwright-cli run-code "async page => {
@@ -59,4 +59,5 @@ Stop only after the state the clip is meant to show is on screen. Take a screens
 
 - Recording adds slight overhead to automation
 - Large recordings can consume significant disk space
-- GitHub plays `.webm` and `.mp4` inline. Converting to GIF or MP4 needs `ffmpeg` (`nix shell nixpkgs#ffmpeg`).
+- GitHub plays `.webm` inline, so no conversion is needed.
+- Recording at `deviceScaleFactor: 2` doesn't sharpen video: frames are captured in CSS pixels, and a larger `size` only adds gray padding.

@@ -57,7 +57,7 @@ Write everything for one run under `EVIDENCE=~/Pictures/verify-helios/$(date +%Y
   }"
   ```
 
-  Don't use the CLI `video-start`: it downscales to 800 px wide, and text turns soft. Full size at 1280×720 is about 75 KB/s, so roughly 4.5 MB a minute. For a PR, `nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#ffmpeg -c ffmpeg -i in.webm -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart out.mp4` halves the size and plays everywhere.
+  WebM is the only format: no conversion step, and GitHub plays it inline. Don't use the CLI `video-start`: it downscales to 800 px wide, and text turns soft. At 1280×720 the recorder captures 25 fps during continuous motion, at roughly 40–75 KB/s, so a one-minute clip is under 5 MB.
 
   Start after login and setup, so the clip opens on the user's first action. Stop only after the state that proves the claim is on screen. Without `--filename` the clip lands in `.playwright-cli/` under the working directory. You can't watch the clip, so the screenshot taken just before `video-stop` stands in for its last frame: inspect that, and confirm the file is non-empty.
 
