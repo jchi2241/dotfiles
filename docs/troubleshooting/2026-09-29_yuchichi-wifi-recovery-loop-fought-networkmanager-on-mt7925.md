@@ -44,6 +44,17 @@ Settle times: 13s after resume, 45s after a firmware reset (`RESUME_SETTLE_SEC`,
 yuchichi-wifi-fix apply
 ```
 
+### Follow-up: NetworkManager gave up after one failed handshake (2026-10-01)
+
+With `disable_clc=1` active, the firmware reset again at 00:25:36.
+The first handshake at 00:26:30, 54s after the reset, still timed out.
+NetworkManager asked for a new password, no agent answered (screen likely locked), and at 00:28:35 it failed the connection with `no-secrets`.
+That blocks autoconnect, so Wi-Fi stayed down until a manual connect at 00:42:48.
+
+The helper now polls for up to 10 minutes after radio-on.
+If the device sits `disconnected` for two polls in a row, it runs `nmcli connection up` once per round.
+It never runs `connection down` and does nothing while NetworkManager is mid-attempt.
+
 ### Likely underlying cause: malformed CLC command (added later on 2026-09-29)
 
 6.17.0-1032-oem sends the MT7925 CLC (regulatory) command with a wrong TLV length.

@@ -28,9 +28,11 @@
 #   5. firmware watcher                  — same radio-off settle after a
 #                                          spontaneous mt7925e firmware reset
 #
-# Recovery never drives connections itself: it only keeps the radio off while
-# the firmware is not ready, then leaves reconnecting to NetworkManager.
-# An earlier helper looped `nmcli connection up/down` and reloaded the driver.
+# Recovery keeps the radio off while the firmware is not ready, then leaves
+# reconnecting to NetworkManager. It only runs `nmcli connection up` if
+# NetworkManager has given up and the device sits disconnected; it never takes
+# a connection down. An earlier helper looped `nmcli connection up/down` and
+# reloaded the driver.
 # That tore down connections NetworkManager had just made, and driver reloads
 # did not shorten recovery (removed 2026-09-29).
 #
@@ -76,6 +78,9 @@ RECOVER_SERVICE="/etc/systemd/system/$RECOVER_UNIT"
 # reset, handshakes at ~20s failed and ones at ~30s succeeded (Sep 2026 logs).
 RESUME_SETTLE_SEC="${RESUME_SETTLE_SEC:-13}"
 FW_RESET_SETTLE_SEC="${FW_RESET_SETTLE_SEC:-45}"
+# How long the helper keeps re-activating the profile if NetworkManager gives
+# up after a failed handshake. Covers a few rounds of its 2-minute secrets wait.
+NUDGE_WINDOW_SEC="${NUDGE_WINDOW_SEC:-600}"
 
 bold()   { printf '\033[1m%s\033[0m' "$*"; }
 green()  { printf '\033[32m%s\033[0m' "$*"; }
@@ -134,13 +139,41 @@ fi
 # NetworkManager answers each timeout with a password dialog. Keep the radio off
 # until the chip is ready, then let NetworkManager's own autoconnect take over.
 # The radio must come back even if this is interrupted.
-trap 'nmcli radio wifi on >/dev/null 2>&1 || true; log "\$MODE: radio on; NetworkManager autoconnect takes over"' EXIT
+trap 'nmcli radio wifi on >/dev/null 2>&1 || true; log "\$MODE: radio on (interrupted)"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
 log "\$MODE: radio off for \${SETTLE}s while mt7925e firmware settles"
 nmcli radio wifi off >/dev/null 2>&1 || true
 sleep "\$SETTLE"
+nmcli radio wifi on >/dev/null 2>&1 || true
+trap - EXIT
+log "\$MODE: radio on; NetworkManager autoconnect takes over"
+
+# If a handshake still times out, NetworkManager asks for a new password. With
+# no dialog to answer (screen locked), it fails the connection with no-secrets
+# and blocks autoconnect until a manual connect (Oct 1: down 16 minutes). Act
+# only when the device sits idle-disconnected, never while NetworkManager is
+# mid-attempt or connected, so this cannot tear down a working link.
+DEVICE="\$(nmcli -t -f DEVICE,TYPE device | awk -F: '\$2 == "wifi" { print \$1; exit }')"
+deadline=\$(( \$(date +%s) + ${NUDGE_WINDOW_SEC} ))
+idle=0
+while [ "\$(date +%s)" -lt "\$deadline" ]; do
+  sleep 10
+  state="\$(nmcli -g GENERAL.STATE device show "\$DEVICE" 2>/dev/null)"
+  case "\$state" in
+    100*) log "\$MODE: connected"; exit 0 ;;
+    # Two idle polls in a row, so a pending autoconnect gets to go first.
+    30*) idle=\$((idle + 1)) ;;
+    *) idle=0 ;;
+  esac
+  if [ "\$idle" -ge 2 ]; then
+    log "\$MODE: NetworkManager gave up; activating ${SSID}"
+    nmcli --wait 60 connection up "${SSID}" >/dev/null 2>&1 || true
+    idle=0
+  fi
+done
+log "\$MODE: still not connected after ${NUDGE_WINDOW_SEC}s; leaving it to NetworkManager"
 HELPER
   sudo chmod 755 "$RECONNECT_HELPER"
 }
@@ -155,7 +188,7 @@ Requires=NetworkManager.service
 [Service]
 Type=oneshot
 ExecStart=${RECONNECT_HELPER} firmware-reset
-TimeoutStartSec=5min
+TimeoutStartSec=15min
 UNIT
 
   sudo tee "$WATCH_SERVICE" >/dev/null <<UNIT
@@ -253,7 +286,7 @@ cmd_status() {
     ring "resume hook missing"
   fi
   if [[ -x "$RECONNECT_HELPER" ]] &&
-     grep -q 'firmware reload detected' "$RECONNECT_HELPER"; then
+     grep -q 'NetworkManager gave up' "$RECONNECT_HELPER"; then
     tick "automatic recovery helper present ($RECONNECT_HELPER)"
   else
     ring "automatic recovery helper missing or stale — re-run apply"
@@ -424,7 +457,7 @@ cmd_recover() {
 }
 
 usage() {
-  sed -n '2,44p' "$0" | sed 's/^# \?//'
+  sed -n '2,61p' "$0" | sed 's/^# \?//'
 }
 
 main() {
