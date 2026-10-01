@@ -23,6 +23,6 @@ It runs your existing commands in order. Each step lists only what the command d
    - File the migration apply ticket. Merge the migration only after it is applied.
    - Run `backend-lint-merge` before you merge an API change.
    - Track rollout steps in the plan.
-10. **Done.** Run `/review-implementation <plan>` for a comprehensive review, then the plan's end-to-end check on the local stack.
+10. **Done.** Run `/review-implementation <plan>` for a comprehensive review, then the plan's end-to-end check on the local stack with the `verify-helios` skill. Add a feature file for each user-visible outcome that has none.
 
 **Reply:** the artifact or PR links for the current step, the decisions made, and the next gate.

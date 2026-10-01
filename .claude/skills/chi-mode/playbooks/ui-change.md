@@ -18,6 +18,7 @@ When the user asked for a PR ("open a PR", "take it to the finish line"), finish
 
    The recursive lint mirrors the ESLint part of the GitHub `lint-frontend` job. It catches duplicate and unused imports after review fixes. Re-run it after the final frontend commit.
 5. **Visual proof.** Follow `helios-ui-visual-proof`. Clean up capture scaffolding before you commit.
+   - When the change reads or writes real backend data, also run the `verify-helios` skill against the real local stack and include its verdict. Mocked screenshots alone don't prove that path.
 6. **Ship.** `commit`, then `pr-create` with `writing-pr-descriptions`, then `pr-image-upload` for the screenshots. Do not list routine checks in the body; CI covers them.
 
 **Done when:**
