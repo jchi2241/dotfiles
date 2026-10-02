@@ -1,0 +1,9 @@
+[Unit]
+Description=Check the Go build cache size hourly
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target

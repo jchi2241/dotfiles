@@ -1,0 +1,6 @@
+[Unit]
+Description=Clear the Go build cache when it exceeds its size cap
+
+[Service]
+Type=oneshot
+ExecStart=%h/.claude/skills/helios-disk-cleanup/scripts/go-cache-trim.sh 60
