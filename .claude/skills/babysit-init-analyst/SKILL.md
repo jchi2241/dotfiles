@@ -140,6 +140,14 @@ direnv exec ~/projects/helios k3d cluster list  # confirm no stale cluster entry
 
 If no lingering containers are found (k3d already rolled back the failed create itself), the port is usually just released within moments — retry `kube-init` directly. If the same port conflict repeats, find and kill whatever process/container is actually holding it (`ss -ltn`, `docker ps -a` for *any* container publishing that port, not just k3d-named ones) rather than giving up.
 
+### `ErrImagePull ... k3d-registry.localhost:5000/... manifests/sha256:... not found` after a Docker prune
+
+`docker image prune -a` (or a registry rebuild) leaves registry tags pointing at missing manifests, while make targets still look up to date, so `kube-init` skips the pushes. Seen for `memsql/operator` (blocks `start-nova-workspace`: "no matching resources found" on the master-0 wait) and `helios/book-cluster-worker`.
+
+- Image still in `docker images`: `docker push k3d-registry.localhost:5000/<repo>:latest`.
+- `book-cluster-worker`: `rm -f deploy/docker/bin/book-cluster-worker && direnv exec . make deploy/docker/bin/book-cluster-worker` (that rule builds and pushes).
+- Then delete the failing pods. If `start-nova-workspace` already failed, don't rerun it (it deploys a new workspace); wait for the existing workspace's pods and its `NovaDatabaseCreate` task, then run `setup-analyst`.
+
 ### Other failures
 
 For failures that don't match a known signature above, still attempt reasonable local recovery yourself first: retry the failing step once, tear down and recreate the k3d cluster (`make kube-delete` + rerun `kube-init`) if state looks corrupted, or restart offending containers. Examples where retry/teardown is fair game: images failing to pull (retry, or restart docker), k3d unable to bind ports (see above), kafka timing out (restart the pod/cluster). Only stop and surface the raw error to the user when: disk is actually full, credentials/secrets are missing, the failure is external (e.g. upstream registry outage), or you've already retried the same recovery twice with no progress.

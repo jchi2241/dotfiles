@@ -31,7 +31,7 @@ Skills name a model role, written as model role `<name>`, instead of a model. Pa
 | `explorers` | `cursor-grok-4.6-high` | Fast read-only fan-out: `how` explorers, `why` investigators |
 | `judgment` | `claude-opus-5-5-medium` | Synthesis and prose: `how` explainer, `why` synthesizer, `/reflect` judgment |
 | `contrast` | `gpt-5.6-sol-xhigh` | A second family for a different read: `/reflect` tooling |
-| `code workers` | `claude-opus-5-5-medium` | Implementers and fixers in `/implement-plan` |
+| `code workers` | `cursor-grok-4.6-high` | Implementers and fixers in `/implement-plan` |
 | `reviewers` | `claude-opus-5-5-medium` | Pre-flight, spec, code-quality, and integration reviewers in `/implement-plan` |
 | `panel` | `claude-opus-5-5-medium`, `gpt-5.6-sol-xhigh`, `cursor-grok-4.6-high` | One subagent per entry: `arena` and `architect` runners, `interrogate` reviewers, and the `arena` judge pool |
 <!-- models:end -->

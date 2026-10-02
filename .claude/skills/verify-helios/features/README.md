@@ -6,6 +6,7 @@ The maintained recipes for verifying user-facing Helios behavior on the local st
 |---|---|
 | Analyst chat turn, end to end | [`analyst-chat.md`](analyst-chat.md) |
 | Analyst budget: contracted vs on-demand, limits, enforcement | [`analyst-budget.md`](analyst-budget.md) |
+| Agent chat billing: which agents meter, sidebar agent install | [`agent-billing.md`](agent-billing.md) |
 
 ## Baseline
 

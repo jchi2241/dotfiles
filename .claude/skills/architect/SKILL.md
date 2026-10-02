@@ -54,7 +54,7 @@ Arena returns one synthesized design package. The synthesis decision populates t
 
 Stop and show the synthesized design. Do not implement until the human signs off.
 
-The design is a document: the rationale in `references/rationale-template.md`, with the type sketch written inside it. Do not commit the sketch. Do not add types, fields, enum values, or files that no caller in the current change uses. The change that first calls a type is the change that adds it.
+The design is a document: the rationale in `references/rationale-template.md`, with the type sketch written inside it. Save it as `~/.claude/thoughts/plans/YYYY-MM-DD_<topic>-architect-design.md`. Do not commit the sketch. Do not add types, fields, enum values, or files that no caller in the current change uses. The change that first calls a type is the change that adds it.
 
 Surface the design and pause. The human signs off by answering the open questions. If the human pushes back on the shape, treat that as Phase A evidence. Re-ground and re-run Phase B before writing more code.
 

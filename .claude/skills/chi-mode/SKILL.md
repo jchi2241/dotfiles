@@ -38,11 +38,11 @@ To add a workflow: write `playbooks/<name>.md` as numbered steps that name the s
 - Any request that says "don't make changes yet" or "don't take action yet". Stay read-only.
 - Creating, editing, or moving Jira tickets between sprints.
 - Editing the PRD body. Propose wording in chat instead.
-- Applying or merging a migration.
-- Enabling a codegate, running a backfill, or anything else that changes production data.
+- Filing a migration apply ticket, or merging a migration. Neither the operator nor the agent applies staging or production migrations; a designated applier does, through the apply ticket (`helios-migration-jira-ticket` skill).
+- Enabling a codegate, running a backfill, or anything else that changes staging or production data.
 - A product or preference call that no experiment can settle. Use `AskQuestion` with a recommended option first.
 
-Reversible local work proceeds without asking: reading, research, local edits to thoughts files, prototypes on a scratch branch, and local branches and commits in a worktree. The operator's standing approval of local commits overrides the Helios rule against unrequested commits. Never commit on `master` or in the main `~/projects/helios` checkout.
+Reversible local work proceeds without asking: reading, research, local edits to thoughts files, prototypes on a scratch branch, local branches and commits in a worktree, and local stack changes that verification needs (applying migrations to the local database, running backfills, toggling codegates, redeploying services). The operator's standing approval of local commits overrides the Helios rule against unrequested commits. Never commit on `master` or in the main `~/projects/helios` checkout.
 
 ## Sources of truth
 
@@ -57,7 +57,7 @@ Artifacts live under `~/.claude/thoughts/`. Run `/workflow` to see the chain.
 | Artifact | Made by | Path |
 |---|---|---|
 | Spec | `/create-spec` | `specs/YYYY-MM-DD_<topic>.md` |
-| Design | `architect` | `plans/YYYY-MM-DD_<topic>-design.md` |
+| Design | `architect` | `plans/YYYY-MM-DD_<topic>-architect-design.md` |
 | Plan | `/create-plan` | `plans/YYYY-MM-DD_<topic>.md` |
 
 ## Who owns what
