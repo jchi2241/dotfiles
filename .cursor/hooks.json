@@ -1,5 +1,11 @@
 {
   "version": 1,
   "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "./hooks/block-whole-tree-builds.sh",
+        "matcher": "go\\s+(build|test|vet)|cypress"
+      }
+    ]
   }
 }

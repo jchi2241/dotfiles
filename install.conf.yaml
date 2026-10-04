@@ -53,6 +53,16 @@
         create: true
         force: true
 
+    # heavy-slots: queue builds/tests/lints machine-wide (`use heavy_slots` in .envrc.private)
+    ~/.local/libexec/heavy-shims:
+        path: bin/heavy-shims
+        create: true
+        force: true
+    ~/.config/direnv/lib/heavy_slots.sh:
+        path: .config/direnv/lib/heavy_slots.sh
+        create: true
+        force: true
+
     # Claude Code configuration
     ~/.claude/settings.json:
         path: .claude/settings.json

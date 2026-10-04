@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Queue heavy build, test, and lint commands for one of a few machine-wide
+# slots, so parallel agents and shells can't saturate the CPU.
+#
+# Invoked through symlinks named after the wrapped command (go, pnpm, npm,
+# npx) in ~/.local/libexec/heavy-shims, which `use heavy_slots` (direnv)
+# puts first on PATH. Light commands (go env, pnpm install, ...) pass
+# straight through.
+#
+#   HEAVY_SLOTS=0    disable queuing for this command
+#   HEAVY_SLOTS=N    number of slots (default 2)
+#   HEAVY_NICE=N     nice level for queued commands (default 10)
+#
+# Children inherit HEAVY_SLOT_HELD, so a heavy command that runs another
+# (pnpm lint -> pnpm -r lint) never waits on its own slot.
+
+set -uo pipefail
+
+name=${0##*/}
+shim_dir=$(cd "$(dirname "$0")" && pwd -P)
+self_dir=$(dirname "$0")
+
+clean_path=$(printf '%s' "$PATH" | awk -v RS=: -v ORS=: -v a="$shim_dir" -v b="$self_dir" '$0 != a && $0 != b' | sed 's/:$//')
+real=$(PATH=$clean_path command -v "$name") || {
+	echo "heavy-slots: $name not found on PATH" >&2
+	exit 127
+}
+
+is_heavy() {
+	case $name in
+	go)
+		case ${1:-} in build | test | vet | run | install | generate) return 0 ;; esac
+		;;
+	pnpm | npm | npx)
+		local a
+		for a in "$@"; do
+			case $a in
+			tsgo | tsc | lint | lint:* | prettier | eslint | cypress | test | test:* | build | build:* | vitest | jest) return 0 ;;
+			esac
+		done
+		;;
+	esac
+	return 1
+}
+
+slots=${HEAVY_SLOTS:-2}
+if [[ -n ${HEAVY_SLOT_HELD:-} || $slots == 0 ]] || ! is_heavy "$@"; then
+	exec "$real" "$@"
+fi
+
+dir=$HOME/.cache/heavy-slots
+mkdir -p "$dir"
+announced=0
+while :; do
+	for ((i = 1; i <= slots; i++)); do
+		exec 9>>"$dir/$i.lock"
+		if flock -n 9; then
+			printf '%s %s %s\n' "$$" "$PWD" "$name $*" >"$dir/$i.owner"
+			export HEAVY_SLOT_HELD=$i
+			exec nice -n "${HEAVY_NICE:-10}" "$real" "$@"
+		fi
+		exec 9>&-
+	done
+	if ((!announced)); then
+		echo "heavy-slots: all $slots slots busy; waiting. Holders:" >&2
+		cat "$dir"/*.owner >&2 2>/dev/null
+		announced=1
+	fi
+	sleep 3
+done
