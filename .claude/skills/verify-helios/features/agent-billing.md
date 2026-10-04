@@ -29,8 +29,10 @@ Steps:
   2. `nexusAppVersionCreate` with `appType: AuraFlow`, `version: "1.0.0-dev"`, `schemaFilePath: "/var/singlestore-nexus/ai-apps/agents/packages/flow/install/install.yaml"`, and the `singlestore` publisher. Then call `nexusAppVersionPromote` twice.
   3. Call public `nexusAppInstall(input:{projectID, appType: AuraFlow, region:"us-east-1"})` from the logged-in page with `fetch`, reusing the `authorization` header of a portal `localhost:9001/public` request. The local private schema has no `nexusAppInstall`.
   4. The app turns `Active` within a minute and exposes an `Agent` resource.
+
+  The two `nexusAppVersionPromote` calls are optional locally: in dev, install picks the latest supported version of the app type whatever its tag. Read the `singlestore` publisher ID with `mysql -u root -h localhost -P 3310 -ppassword helios -e "select publisherid from nexusapppublishers where name='singlestore'"`.
   The local `novaagent` image prebakes all five agent packages under `/opt/agents`.
-- **Chat.** Pick `Flow Agent` in the sidebar, fill `getByRole('textbox', { name: /Ask me to migrate data/ })`, and click `Ask` (`exact: true`). Wait for `Stop` to detach. Then scrape again and read nova-gateway logs since the send: `producing billing event`, or `not billing nexus app type <type> on service <id>`.
+- **Chat.** Pick `Flow Agent` in the sidebar, fill `getByRole('textbox', { name: /Ask me to migrate data/ })`, and click `getByRole('button', { name: 'Ask', exact: true, disabled: false })`. On the Analyst page the main composer has its own disabled `Ask`, so without `disabled: false` the locator matches two buttons and fails strict mode. Wait for `Stop` to detach. Then scrape again and read nova-gateway logs since the send: `producing billing event`, or `not billing nexus app type <type> on service <id>`.
 
 ## Gotchas
 

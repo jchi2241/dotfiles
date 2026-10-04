@@ -1,479 +1,150 @@
 ---
 description: Execute tasks from an implementation plan
-argument-hint: [plan file path] [--deliberate | --yolo | --auto]
+argument-hint: [plan file path] [--yolo]
 model: opus
 ---
 
 # Implement Plan
 
-Execute tasks from an implementation plan created by the `create-plan` command.
+Execute an implementation plan created by `/create-plan`, one PR at a time.
 
 **Required argument:** Path to the plan file
-**Optional flags:** `--deliberate` | `--yolo` | `--auto` (default: standard mode)
+**Optional flag:** `--yolo` — one `reviewers` agent per PR instead of the lanes, and no integration lane.
+
+The plan file is the only progress state. A task is done when its "Actual Implementation" section is filled in. A PR is done when its section records a branch, a commit, and a PR URL. Rerun this command with the same plan to resume.
 
 ---
 
-## Mode Flags
+## When to stop
 
-Parse `$ARGUMENTS` for mode flags. The plan path is the first non-flag argument.
+Run unattended. Stop only for:
 
-| Mode | Flag | Behavior |
-|------|------|----------|
-| **Standard** | _(default)_ | Full ceremony. Per-task two-stage review + cross-task integration review + batch checkpoints every 3 tasks. Single orchestrator session across all phases. Pauses for user confirmation at batch checkpoints and commit gates. |
-| **Deliberate** | `--deliberate` | Everything in Standard + session ENDS after each phase. On resume, cross-phase integration check validates previous work before continuing. Use `/continue-plan` to resume in a fresh session. |
-| **Auto** | `--auto` | Everything in Standard (per-task spec + code quality reviews, cross-task integration review) but UNATTENDED. Auto-continues past batch checkpoints and commit gates without waiting for user confirmation. Single orchestrator session across all phases. Only stops on failures or blocking review issues. |
-| **YOLO** | `--yolo` | Self-review only (no external reviews). Opens each PR without pausing. No session breaks. Only stops on failures. |
+- A chi-mode gate (`~/.claude/skills/chi-mode/SKILL.md`, Gates). Pushing and opening draft PRs follow the plan's `push:` field: `drafts` means the operator approved them, `ask` means queue them.
+- A failed task, or a failed check that a fix round cannot clear.
+- A deviation from the design document, or the same workaround in several PRs.
+- A product call no experiment can settle.
 
-**Parsing:** Split `$ARGUMENTS` on whitespace. Look for `--deliberate`, `--yolo`, or `--auto`. Everything else is the plan file path. The three mode flags are mutually exclusive — if more than one is present, error and ask user to pick one.
+Do not idle on a question. Keep working on PRs that do not depend on the answer, and put every open question into one `AskQuestion` at the next stop.
 
 ---
 
-## Pre-flight Checks
+## Step 1: Load
 
-Before implementing, verify:
-
-1. **Plan file exists** at the provided path
-2. **Load plan metadata only — do NOT read the full plan file.** The plan can be thousands of lines; pulling it into the orchestrator's context defeats subagent isolation and is the single largest source of orchestrator token bloat. Instead:
-   - `Read` the plan with `limit: 50` to capture frontmatter + overview. Extract `task_list_id`, `spec`, `research_doc` from frontmatter.
-   - `Grep` the plan for `^### Phase|^##### PR-|^- \*\*(Depends on|Tasks):|^### Task|^\*\*PR:\*\*` with `output_mode: content, -n: true` to get the phase, PR, and task structure without bodies.
-   - Subagents read their own task sections on dispatch. The orchestrator never needs full task descriptions.
-3. **Task List path** is recorded in the plan header
-4. **Tasks exist** — check the task list directory has JSON files
-5. **Derive plan slug** — from plan filename: strip date prefix and `.md` suffix (e.g., `2026-02-09_add-auth.md` → `add-auth`). This slug is used for worktree and branch naming.
-
-If any required artifact is missing, inform the user and stop.
-
----
-
-## Task API vs JSON Fallback
-
-The Task APIs (`TaskList`, `TaskUpdate`, etc.) only work if the session was started with the matching task list ID:
-
-```bash
-CLAUDE_CODE_TASK_LIST_ID=<uuid> claude
-```
-
-**Detection:** Call `TaskList` at the start. If it returns tasks matching the plan, use Task APIs. Otherwise, fall back to reading/writing JSON files directly.
-
-### When Task APIs work (preferred):
-- Use `TaskList` to view statuses
-- Use `TaskUpdate` to change status to `in_progress` or `completed`
-- Use `TaskGet` to read task details
-
-### When falling back to JSON files:
-- Read `~/.claude/tasks/<uuid>/*.json` to get task statuses
-- Edit JSON files to update `"status"` field
-- Task panel won't update, but progress is persisted
-
-**Always inform the user** which mode you're operating in at the start.
-
----
-
-## Implementation Process
-
-### Step 1: Load Context and Report Status
-
-1. Read the plan file completely
-2. Read the spec file (if referenced in frontmatter) — for phase review context later
-3. **Detect API mode** (Task APIs vs JSON fallback)
-4. Get task statuses
-5. Identify current phase (first phase with incomplete tasks)
-6. **Detect resume** — if any phases have all tasks completed, this is a resume
-7. Report:
+1. **Read plan metadata only.** `Read` the plan with `limit: 50` for frontmatter and overview. `Grep` it for `^### Phase|^##### PR-|^- \*\*(Depends on|Tasks):|^### Task|^\*\*(Branch|Commit|PR):\*\*` with `-n` to get the structure. Never read the full plan; subagents read their own sections.
+2. **Find the current PR:** the lowest PR, in dependency order, without a recorded PR URL (or, under `push: ask`, without a recorded commit).
+3. Set `status: in_progress`. **Report** and continue:
 
 ```
-Plan loaded. [Task APIs active / Using JSON fallback]
-Mode: [standard / deliberate / auto / yolo]
-Spec: [path or "none referenced"]
-Progress: [X]/[Y] tasks complete, Phase [completed]/[total] phases complete
-Current phase: Phase [N] — [phase name] ([X] pending tasks)
-[If resuming in deliberate mode]: Resume detected — will run cross-phase integration check first.
+Plan: [path]   Push policy: [drafts / ask]   Mode: [lanes / yolo]
+Progress: [X]/[Y] PRs, [A]/[B] tasks. Current: Phase [N], PR-[M].
 ```
 
-**Wait for user confirmation before proceeding.** (In `--auto` mode, skip this gate: report status and proceed directly to branch setup and execution. The whole point of auto mode is an unattended run.)
+## Step 2: Branches
 
-### Step 1a: Cross-Phase Integration Check (deliberate mode resume only)
+Work in a worktree (`helios-worktrees` skill), never the main `~/projects/helios` checkout. Stack conventions are in `gh-stack`.
 
-**When:** Deliberate mode, resuming at Phase 2+ (at least one completed phase exists). This runs at the **start of a fresh session** before any new work, validating that the previous phase's work is solid and the current phase's plan is still valid.
+One branch per PR section, named `<jira-key>/jchi/pr-<N>-<slug>`:
 
-**Skip in:** Standard mode (single session, no cross-phase boundary), YOLO mode.
+- A PR with no dependency starts from `origin/master`.
+- A PR that depends on another stacks on that PR's branch.
+- If the plan names a different base, use it.
 
-Spawn a **read-only** Task agent (model role `reviewers`, subagent_type: **general-purpose**):
+## Step 3: Per PR
 
-```
-You are a staff engineer verifying integration before starting Phase [N].
+Take the lowest PR whose dependencies are done. PRs with no dependency between them may run in parallel, each in its own worktree, with at most two implementers or fixers at once. Put worktrees under `~/projects`, not `/tmp`, and give each one an `.envrc.private` with `use heavy_slots` (the `wta` copy sources the main repo's, which has it).
 
-## Context
-- Plan file: [plan_path] — read it completely
-- Spec file: [spec_path] (if available)
-- Most recently completed phase: Phase [N-1]
+### 3a. Implement
 
-## Your Job
-1. Read the plan's Phase [N-1] tasks and their "Actual Implementation" sections
-2. Verify against the actual codebase:
-   - Do the implementations match what was documented?
-   - Are there any inconsistencies or regressions?
-   - Has the codebase changed outside of the plan since the last session? (check git log for commits not attributable to plan tasks)
-3. Check Phase [N]'s planned tasks:
-   - Are they still valid given what Phase [N-1] actually implemented?
-   - Any assumptions that no longer hold?
-   - Do file paths and line references still match?
-
-## Output Format
-READY: [one-line summary — codebase is consistent, Phase N plan is valid]
-
-or
-
-ISSUES:
-- [file:line] [description] [severity: blocking | warning]
-- [Phase N adjustment] Task X: [what needs to change and why]
-
-## Rules
-- Read-only. Do not modify any files.
-- Be terse. Only actionable findings.
-- Focus on integration and plan validity, not style.
-- Check EVERY file mentioned in the completed tasks, not a sample.
-```
-
-**Handle results:**
-
-- **READY:** Report and proceed to branch setup (Step 1b).
-- **ISSUES with blocking items:** Present issues to user. Wait for user decision before proceeding.
-- **ISSUES with warnings only:** Report warnings, proceed.
-
-### Step 1b: Branch Setup
-
-**Uses: `gh-stack` skill** — see `~/.claude/skills/gh-stack/SKILL.md` for stack conventions.
-
-**Detect environment:**
-
-```bash
-# Check if already in a worktree
-git rev-parse --show-toplevel
-git rev-parse --git-common-dir
-# If these differ, we're in a worktree — use it as-is
-```
-
-**If already in a worktree:** Use it. Proceed to branch creation below.
-
-**If NOT in a worktree:** Ask the user:
-- **Worktree isolation** — user creates worktree externally (e.g., `wta`), then re-runs
-- **Branch-only** — create branches in the current repo directly
-
-**In `--auto` mode:** Do not block on this prompt. Default to **branch-only** (create branches in the current repo directly) and note the choice in the status report. If the user wanted worktree isolation for an unattended run, they should start inside a worktree before invoking.
-
-**Branch creation (all flows):** one branch per PR section, not per phase.
-
-- A PR with no dependency starts from `master`: `git checkout -b "chi/${SLUG}-pr-1" origin/master`
-- A PR that depends on another PR stacks on that PR's branch: `git checkout -b "chi/${SLUG}-pr-2" "chi/${SLUG}-pr-1"`
-- If the plan says a different base, use the plan's base.
-
-For resume: find the first PR with incomplete tasks, verify its branch exists and is checked out, and create it from its base if it does not exist.
-
-**Pass to all subagents:** working directory, branch, and current phase/PR/task numbers for commit prefixes (`PN/PR-M/TK`).
-
-### Step 2: Execute Tasks in Current Phase
-
-**Uses: `subagent-driven-development` skill** — see `~/.claude/skills/subagent-driven-development/SKILL.md` for the full per-task loop and prompt templates.
-
-**Preparation:** Step 1 already loaded phase/task structure via bounded read + grep. Do NOT re-read the full plan. Note the spec path from frontmatter.
-
-**Orchestrator discipline:** Your role is thin dispatch and coordination. You provide pointers (plan path, task number, file paths from completed dependencies), not content. Do NOT:
-- Extract or paste task descriptions from the plan into subagent prompts
-- Pre-read prompt template files (`implementer-prompt.md`, `spec-reviewer-prompt.md`, `code-quality-reviewer-prompt.md`) — the subagent reads its own template. Your dispatch prompt is a short pointer, not the full template body.
-- Read the spec to pull excerpts for subagents
-- Explore the codebase, read source files, or run searches
-- Pre-digest anything the subagent can read itself
-
-Each subagent gets a fresh context window. They read the plan, the spec, the template, and the codebase directly. Your context window is reserved for coordination: tracking task status, handling responses, managing dependencies, and reporting to the user.
-
-**Batch size:** 3 tasks. After every 3 completed tasks within a phase, pause for a batch checkpoint (see Step 2f).
-
-**Work PR by PR.** Within the current phase, take the lowest PR whose dependencies are done. Check out its branch (Step 1b). Run its tasks, then finish the PR (Step 2g) before you start a PR that depends on it. PRs with no dependency between them may run in parallel only in separate worktrees.
-
-For each unblocked, pending task in the current PR:
-
-#### 2a. Dispatch Implementer
-
-1. **Mark task as in_progress** (Task APIs or JSON fallback)
-2. **Dispatch implementer subagent** (model role `code workers`, subagent_type: **general-purpose**). The dispatch prompt is a SHORT pointer — do NOT inline the template body. The subagent reads the template itself. Structure:
+Per task, follow `~/.claude/skills/subagent-driven-development/SKILL.md`. Dispatch one implementer (model role `code workers`) with a short pointer prompt; it reads its own template:
 
 ```
 Read ~/.claude/skills/subagent-driven-development/implementer-prompt.md — that is your full instructions. Follow it.
 
 Plan: [plan_path]
-Task: [N]  (read "### Task [N]:" section in the plan for the specification)
-Spec: [spec_path or "see plan frontmatter"]
+Task: [N]  (read "### Task [N]:" in the plan)
+Spec: [spec_path]
 Working dir: [dir]
 Branch: [branch]
-Commit prefix: [PN/TM]
-Env: [one-line environment notes, or omit]
+Commit prefix: [PN/PR-M/TK]
 
 Completed dependencies:
 - Task [N]: [one-line summary] — files: [paths]
 (or "None")
-
-Sibling tasks this phase: [brief list with statuses]
 ```
 
-   The whole dispatch prompt should be ~20-40 lines. Everything else is in the template file the subagent reads.
+Do not paste task text, read the spec for the subagent, or explore the code yourself. Your context is for coordination.
 
-3. **Handle response:**
-   - If subagent asks questions → answer from the plan/spec (targeted `Read` with offset/limit if needed), then re-dispatch with answers incorporated
-   - If `COMPLETED:` → **store the one-line summary and files changed** (you'll pass these to dependent tasks and reviewers) → proceed to spec review (step 2b)
-   - If `FAILED:` → do NOT mark completed, report failure to user with details, stop and wait for user input
+- Questions: answer from the plan or spec, then re-dispatch.
+- `COMPLETED:` keep the one-line summary and files for dependent tasks.
+- `FAILED:` stop and report.
 
-#### 2b. Spec Compliance Review (skip in --yolo mode)
+Tasks in the same PR may run in parallel only when their "Files to Modify" lists do not overlap.
 
-1. **Dispatch spec reviewer** (model role `reviewers`, subagent_type: **general-purpose**). Short pointer-based prompt:
+### 3b. Check the commit
 
-```
-Read ~/.claude/skills/subagent-driven-development/spec-reviewer-prompt.md — that is your full instructions. Follow it.
+Commit any leftover work with `/commit`. Then, on that one SHA, start both at once:
 
-Plan: [plan_path]
-Task: [N]  (read "### Task [N]:" section in the plan)
+- **Targeted tests:** the PR's Verify tests, plus lint, on the touched packages and components only. Never `go build ./...` or the full suite per PR; leave wide coverage to CI.
+- **Lanes:** per `~/.claude/skills/chi-mode/references/review-lanes.md`. Say the Risky call and its reason when you launch them. In `--yolo`, one `reviewers` agent instead.
 
-Implementer's report:
-[paste report verbatim — summary, files changed, deviations, self-review]
-```
+Start the next PR's tasks while these run.
 
-2. **Handle response:**
-   - `✅ SPEC COMPLIANT` → proceed to code quality review (step 2c)
-   - `❌ SPEC ISSUES` → dispatch fix subagent (step 2e) with the specific issues → re-dispatch spec reviewer → repeat until compliant
+### 3c. Fix round
 
-#### 2c. Code Quality Review (skip in --yolo mode)
-
-1. **Dispatch code quality reviewer** (model role `reviewers`, subagent_type: **general-purpose**). Short pointer-based prompt:
+Triage per `review-lanes.md`. Put every real finding and every test failure into **one** fix commit per round, by a fresh fix subagent (model role `code workers`):
 
 ```
-Read ~/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md — that is your full instructions. Follow it.
-
-Task: [one-line summary]
-Files changed: [list]
+Fix these findings. Each behavior fix gets a test that fails without it.
+Plan: [plan_path], PR-[M]. Working dir: [dir]. Branch: [branch].
+Findings: /tmp/review/<pr>-*.md, entries [F1, F3, ...]; test failures: [paths or output].
+Do not change code outside these fixes. Run the targeted tests. Commit.
+Report: FIXED: [summary] or FAILED: [what could not be fixed]
 ```
 
-2. **Handle response:**
-   - `✅ QUALITY APPROVED` → mark task as completed
-   - `❌ QUALITY ISSUES with blocking items` → dispatch fix subagent (step 2e) → re-dispatch quality reviewer → repeat until approved
-   - `❌ QUALITY ISSUES with warnings only` → mark task as completed, note warnings
+Rerun the targeted tests and only the lanes the fix touches, per `review-lanes.md`. Repeat until no lane blocks.
 
-#### 2d. Parallel Execution
+### 3d. Draft PR
 
-- **Launch independent tasks in parallel** when possible (same phase, no blocking dependencies, no overlapping files to modify)
-- Each parallel task runs its own full review loop (2a → 2b → 2c)
-- **Wait for dependent tasks** to complete before launching blocked tasks
-- **File-overlap check before parallel dispatch:** Since you did not read the full plan in Step 1, `blockers` in TaskList are your primary signal. Before launching 2+ tasks in parallel within the same phase, do a bounded `Grep` over the plan for the candidate tasks' "Files:" lines (e.g., `^### Task (A|B):` with `-A 30`, then eyeball for overlap). If any file appears in multiple candidates' file lists, serialize those tasks — do not parallelize. This is a cheap targeted read; do NOT re-read the whole plan.
-
-#### 2e. Fix Subagent Protocol
-
-When a reviewer finds issues, dispatch a fresh fix subagent (model role `code workers`, subagent_type: **general-purpose**):
-
-```
-Fix the following issues found during [spec compliance / code quality] review.
-
-## Original Task
-[Brief task summary and files involved]
-
-## Issues to Fix
-[Paste reviewer's findings with file:line references]
-
-## Requirements
-1. Fix each issue listed above
-2. Do not modify code outside the scope of these fixes
-3. Run relevant tests to verify fixes
-4. Commit your changes
-
-Report: FIXED: [summary of changes] or FAILED: [what couldn't be fixed]
-```
-
-#### 2f. Batch Checkpoint
-
-**After every 3 completed tasks** within a phase, pause and report:
-
-```
-Batch complete ([X]/[Y] tasks in Phase [N]).
-Completed this batch:
-- Task [A]: [one-line summary]
-- Task [B]: [one-line summary]
-- Task [C]: [one-line summary]
-
-Automated verification: [run relevant tests, report PASS/FAIL]
-
-Continue with next batch?
-```
-
-**In standard and deliberate modes: Wait for user confirmation.** This prevents context buildup within large phases and gives the user a natural intervention point.
-
-**In --auto mode:** Do NOT wait. Report the batch summary and automated verification, then continue immediately to the next batch. The only exception is if automated verification FAILED — in that case stop and report (same as a task failure).
-
-If the remaining tasks in the phase are 3 or fewer, skip the checkpoint and complete the phase (Step 3 handles end-of-phase reporting).
-
-#### 2g. PR Completion
-
-After all tasks in a PR are complete:
-
-1. **Commit** the PR's changes using `/commit`, if tasks left uncommitted work.
-2. **Verify and review that commit**, in parallel.
-   - Run the PR's Verify steps from its `##### PR-N` section: targeted tests, then the live check on the claims the diff makes. Capture the evidence. If verification fails, stop and report.
-   - Review with the `panel` per `~/.claude/skills/chi-mode/references/review-before-pr.md`, including its fix, re-verify, and re-review loop. In `--yolo` mode, one `reviewers` agent instead.
-3. **Create the PR** using `/pr-create`, as a draft, with the PR's base branch as its base. Put the live evidence in the Test Plan. Every PR section gets its own PR.
-4. **Record it** in the plan, under the PR section:
+1. Under `push: drafts`, open the PR with `/pr-create`, as a draft, on the PR's base branch. Its Test Plan lists the targeted test results and the PR's live claims as `pending phase [N] verify`. Under `push: ask`, queue it for the next stop.
+2. Record in the PR section:
 
 ```markdown
-**Branch:** `chi/<slug>-pr-<N>`
-**PR:** [PR URL]
-**Evidence:** [command or screenshot summary]
+**Branch:** `<branch>`
+**Commit:** `<sha>` (tests and lanes pass)
+**PR:** [URL, or "queued"]
 ```
 
-5. Increment `prs_complete` in the frontmatter.
-6. **Gate:** in standard and deliberate modes, report the PR URL and wait for confirmation before starting the next PR. In `--auto` and `--yolo` modes, continue.
+3. Increment `prs_complete`, and `tasks_complete` per task.
 
-### Step 3: Phase Completion
+## Step 4: Per phase
 
-After all tasks in a phase complete:
+After every PR in the phase has a recorded commit:
 
-1. **Run automated verification** from the phase's success criteria in the plan
-2. **Report results:**
-
-```
-Phase [N] tasks complete. Automated verification: [PASS/FAIL with details]
-```
-
-**If verification fails:** Stop and report. Do not proceed to review or next phase.
-
-#### In --yolo mode:
-Skip integration review. Proceed directly to plan update (Step 3b) and commit/PR (Step 3c).
-
-#### In standard, auto, and deliberate modes:
-
-Per-task reviews (spec compliance + code quality) are already complete from Step 2. Run a lightweight **cross-task integration review**, then commit gate.
-
-**3a. Cross-Task Integration Review**
-
-Spawn a **separate** Task agent (model role `reviewers`, subagent_type: **general-purpose**). This agent checks that individually-reviewed tasks work together correctly:
-
-```
-You are a staff engineer reviewing Phase [N] as a whole — checking that individually-reviewed tasks integrate correctly.
-
-## Your Inputs
-- Spec file: [spec_path]
-- Plan file: [plan_path]
-- Phase number: [N]
-
-Note: Each task has already passed individual spec compliance and code quality reviews. Your job is NOT to re-review individual tasks but to check cross-task integration.
-
-## Your Job
-1. Read the spec for the phase's overall objectives
-2. Read the plan's Phase [N] tasks and their "Actual Implementation" sections
-3. Verify against the actual codebase:
-   - Do tasks integrate correctly with each other?
-   - Are there inconsistencies between tasks (naming, patterns, data flow)?
-   - Does the phase as a whole satisfy its success criteria?
-   - Any regressions or unintended side effects between tasks?
-
-## Output Format
-PASSED: [one-line summary]
-
-or
-
-ISSUES FOUND:
-- [file:line] [description] [severity: blocking | warning]
-
-## Rules
-- Be terse. Only actionable findings.
-- Do not modify any files. Read-only review.
-- Focus on integration, not re-reviewing individual task quality.
-- Check EVERY file mentioned in the tasks, not a sample.
-```
-
-**Handling review results:**
-
-- **PASSED:** Report to user and proceed to commit gate.
-- **ISSUES FOUND with blocking items:**
-  - **Standard / deliberate:** Present issues to user. Ask: "Fix these before proceeding, or continue anyway?" Wait for user decision.
-  - **Auto:** Stop and report the blocking issues (same as a task failure). Do not commit or continue to the next phase. Unattended mode does not silently push past blocking integration issues.
-- **ISSUES FOUND with warnings only:** Report warnings and proceed to commit gate.
-
-**3b. Update Plan File**
-
-Update the plan file at every phase boundary (both modes):
-
-1. **Update frontmatter counters:**
-   - `tasks_complete`: current count
-   - `phases_complete`: increment by 1
-   - `status`: keep `in_progress` (or `complete` if last phase)
-
-2. **Write Phase Summary** — append to the end of the phase's section in the plan:
+1. **Integration lane.** One fresh agent (model role `reviewers`) with the integration brief from `review-lanes.md`, given the phase's branches and head SHAs, the plan path, and the design document. Skip in `--yolo`.
+2. **Live verify.** Deploy the top of the phase's stack to the local stack once. Run the `verify-helios` skill on every live claim in the phase's PR sections, plus its regression and gates claims. Do not build, deploy, or run Tilt alongside another heavy build.
+3. **Record evidence** in each PR's Test Plan and the plan. A failed claim goes back to that PR as a fix round (Step 3c), and only that claim reruns.
+4. **Write the phase summary** at the end of the phase section:
 
 ```markdown
 #### Phase [N] Summary
 > Completed YYYY-MM-DD
 
-**PRs:**
-- PR-[M] [BE/FE/migration]: `chi/<slug>-pr-<M>` — [PR URL]
-**Tasks completed:** [list with one-line outcomes]
-**Deviations from plan:** [any significant changes vs. what was planned]
-**Gotchas for next phase:** [anything the next session should know]
-**Integration review:** [PASSED / warnings noted]
+**PRs:** PR-[M] `<branch>` [URL], ...
+**Deviations from plan:** [what changed and why]
+**Gotchas for the next phase:** [anything a fresh agent should know]
+**Integration lane:** [NO-BLOCK / findings]
+**Live verify:** [receipts path, verdict, SHA per PR]
 ```
 
-This ensures the plan file is always up to date — critical for deliberate mode where the next session reads it cold, and useful in standard mode for tracking.
+5. Increment `phases_complete`. Ask the queued questions and pushes in one `AskQuestion`, then continue with the next phase. Marking a PR ready for review is the operator's call.
 
-**3c. Phase Transition**
+## Step 5: Done
 
-Every PR in the phase was already opened in Step 2g. Do not open a phase-level PR.
-
-1. **Confirm** every PR in the phase has a PR URL recorded in the plan.
-2. The next phase's first PR branches from its own base, per Step 1b. See the `gh-stack` skill for stack conventions.
-3. **Report:**
+1. Set `status: complete` and add a Changelog entry.
+2. Report every PR, its phase, and its link, then the Slack summary:
 
 ```
-Phase [N] complete and reviewed. [PASSED / N warnings]
-PRs: [PR-M URL], [PR-M+1 URL], ...
-```
-
-**In standard and auto modes:** Proceed to next phase. In auto mode, do this immediately without pausing for confirmation.
-
-**In deliberate mode:** **STOP**. Do not continue to the next phase. Output:
-
-```
-Session ending after Phase [N]. To continue:
-
-/continue-plan [plan_path]
-```
-
-The user starts a fresh session. The resume logic picks up at the next incomplete phase with a clean context window.
-
-### Step 4: Plan Completion
-
-After all phases complete:
-
-1. Update plan frontmatter: `status: complete`
-2. Update plan Changelog with completion summary
-3. **Confirm** every PR section has a PR URL (Step 2g)
-4. **Collect PR data** — read each PR section and phase Summary from the plan file to gather branch names, PR URLs, and task outcomes
-5. Present final status and Slack-ready summary:
-
-```
-## Implementation Complete
-
-All [N] phases done. [N] PRs opened. [N] tasks executed.
-
-### PR Breakdown
-
-| Phase | PR | Layer | Branch | Link | Tasks |
-|-------|----|-------|--------|------|-------|
-| 1. [Phase name] | PR-1 | BE | `chi/<slug>-pr-1` | [PR URL] | [X] tasks |
-| 1. [Phase name] | PR-2 | FE | `chi/<slug>-pr-2` | [PR URL] | [X] tasks |
-| ... | ... | ... | ... | ... | ... |
-
-### Slack Summary (copy-paste ready)
-
 hi team, [plan title] ([feature subtitle]) is ready for review: [N] stacked PRs across [repo(s)] covering [brief list of areas touched].
-
-*[repo name]:*
-1. [PR title](PR URL)
-2. [PR title](PR URL)
 
 *[repo name]:*
 1. [PR title](PR URL)
@@ -482,50 +153,9 @@ hi team, [plan title] ([feature subtitle]) is ready for review: [N] stacked PRs 
 *PRD*: [google doc URL from spec frontmatter, if available]
 
 appreciate your time to take a look at these, thanks!
-
-Suggested next steps:
-- /review-implementation [plan_path] (comprehensive final review)
 ```
 
-**Generating the Slack summary:** For each PR, read the PR title from `gh pr view <URL> --json title`. Use GitHub markdown link syntax: `[PR title](URL)`. Group PRs by repo with italic repo headers (`*repo:*`). No per-PR descriptions, just the linked title. If the spec references a Google Doc PRD, include it as a `*PRD*:` link at the end. Keep the tone lowercase and work-casual - friendly and concise, not formal. No capitalized sentences. Use colons, not em dashes.
-
----
-
-## Resuming Implementation
-
-This command supports resuming interrupted implementations:
-
-1. Gets current task statuses (via TaskList or JSON files)
-2. Skips tasks with status `completed`
-3. Continues from first incomplete task in the earliest incomplete phase
-4. **In deliberate mode:** Runs cross-phase integration check (Step 1a) when resuming at Phase 2+
-5. Mode flag must be re-specified on resume (not persisted)
-
-**For deliberate mode:** Use `/continue-plan` for resuming — it handles plan discovery, task list setup, and delegates to deliberate mode automatically.
-
-**Manual resume (any mode):**
-```bash
-CLAUDE_CODE_TASK_LIST_ID=<uuid> claude
-/implement-plan <plan_path> [--deliberate | --yolo | --auto]
-```
-
----
-
-## Error Handling
-
-If a task fails:
-
-1. The failure is documented in the plan's Actual Implementation section (by the task agent)
-2. The task is NOT marked as completed
-3. Report to user:
-   - What was attempted
-   - What failed (from the agent's FAILED: line)
-   - Suggested remediation
-
-The user can then:
-- Fix the issue and re-run
-- Modify the plan and re-run
-- Skip the task (with explicit confirmation)
+Read each title with `gh pr view <URL> --json title`. Group PRs by repo under italic headers. No per-PR descriptions. Lowercase and work-casual, with colons, not em dashes.
 
 ---
 

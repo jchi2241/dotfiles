@@ -14,15 +14,14 @@ Show the feature development pipeline and detect where you currently are.
 The full workflow pipeline:
 
 ```
-/brainstorm → /map-codebase → /create-spec → /create-plan → /implement-plan → /commit → /pr-create
- (optional)                                                       ↕ (per phase)        ↑
-                                                          /review-implementation   /continue-plan
-                                                                                 (fresh session)
+/brainstorm → /map-codebase → /create-spec → architect → /create-plan → /implement-plan → verify-helios (end to end)
+ (optional)                                                                ↑ resume
+                                                                     /continue-plan
 ```
 
 **When to start with `/brainstorm`:** You have a fuzzy problem or feature and aren't sure where the limits are. Skip it when the task is already crisp — go straight to `/map-codebase` or `/create-spec`.
 
-**Phase lifecycle:** A phase is a slice a user can see, shipped as several PRs (backend and frontend split). `/implement-plan` opens one PR per PR section as it goes. In `--deliberate` mode it executes one phase per session, then stops. `/continue-plan` resumes in a fresh session with a cross-phase integration check. Repeat until all phases are done.
+**Phase lifecycle:** A phase is a slice a user can see, shipped as several PRs (backend and frontend split). `/implement-plan` opens one draft PR per PR section as it goes, and at each phase end runs the integration lane and one live verify of the phase. Progress lives in the plan file, so `/continue-plan` resumes in any session.
 
 **Standalone tools** (usable anytime): `/review-implementation`, `/commit`, `/handoff`, `/worktree`, `/continue-plan`
 
@@ -44,7 +43,7 @@ Scan these directories for artifacts:
 For each directory:
 1. List `.md` files sorted by modification time (newest first), limit to last 30 days
 2. Read the YAML frontmatter of each file to extract: title, project, status, date
-3. For plans, also read: phases_total, phases_complete, tasks_total, tasks_complete, task_list_id
+3. For plans, also read: phases_total, phases_complete, prs_total, prs_complete, tasks_total, tasks_complete
 
 If a project name is given in `$ARGUMENTS`, filter artifacts by `project:` in frontmatter.
 
@@ -69,16 +68,14 @@ For each chain, show pipeline status:
 
   [x] Map:            ~/.claude/thoughts/research/2026-02-09_feature.md
   [x] Spec:           ~/.claude/thoughts/specs/2026-02-09_feature.md
-  [~] Plan:           ~/.claude/thoughts/plans/2026-02-09_feature.md (3/7 tasks, phase 2/4)
+  [~] Plan:           ~/.claude/thoughts/plans/2026-02-09_feature.md (2/5 PRs, phase 2/4)
   [ ] Implementation: In progress
-  [ ] Review:         Not started
+  [ ] End-to-end:     Not started
 
   → Next: /implement-plan ~/.claude/thoughts/plans/2026-02-09_feature.md
 ```
 
 Legend: `[x]` = complete, `[~]` = in progress, `[ ]` = not started
-
-For features with active task lists, check `~/.claude/tasks/<task_list_id>/` for task completion counts.
 
 ---
 

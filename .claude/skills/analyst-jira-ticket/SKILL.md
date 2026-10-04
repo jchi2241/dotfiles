@@ -12,15 +12,15 @@ Use this for Jira tickets about the SingleStore Analyst / Aura Analyst / SQL Bot
 - Jira project: `MCDB`
 - Label: `Analyst` (capitalized — matches existing Analyst tickets; JQL matching is case-insensitive)
 - Component: `Analyst` (not `AI & Compute Platform`)
-- Preferred type:
-  - `Story` for feature/enforcement/product behavior
-  - `Bug` for observed broken behavior or regression
-  - `Task` for technical follow-up/refactor
+- Issue type: only `Epic`, `Story`, or `Sub-task` under a story. Never create a `Task` or a `Bug`.
+  - `Story` for any outcome: a feature, a fix for broken behavior, or technical follow-up.
+  - `Epic` for a body of work that spans several stories.
+  - `Sub-task` only under a story, with that story as `parent`.
 - Search before creating when the request may duplicate prior Analyst work.
 
 ## Granularity
 
-- The story is the finest-grained ticket. Do not create subtasks.
+- The story is the main unit of work. Add sub-tasks under it only when the operator asks.
 - Several PRs reference the same story key in their titles. Only the last PR of the story uses `#closes`.
 - Implementation details live in the spec and the plan, not in Jira. A story names its outcome and links the spec.
 - A migration apply ticket is the exception. File it with the `helios-migration-jira-ticket` skill.
@@ -145,10 +145,11 @@ Sprint and epic can both be set on the initial `createJiraIssue` call; only the
 status needs a second step.
 
 1. Look up the active sprint ID (above).
-2. `createJiraIssue` with `projectKey: "MCDB"`, `issueTypeName`, `summary`,
+2. `createJiraIssue` with `projectKey: "MCDB"`, `issueType` (`Story`, `Epic`, or `Sub-task`), `summary`,
    `description` (markdown is accepted and converted), and `additional_fields`
-   carrying `labels`, `components`, `customfield_10017`, `customfield_10021`, and
-   `assignee: {"id": "<accountId>"}`.
+   carrying `labels`, `components`, and `customfield_10017`. Pass the sprint ID as
+   `assignToSprint` and the account ID as `assignee`. `customfield_10021` in
+   `additional_fields` is rejected on create ("Specify a valid value for Sprint").
 3. `getTransitionsForJiraIssue`, then `transitionJiraIssue` to In Progress.
 4. Re-read the issue to confirm epic, sprint, assignee, and status all stuck —
    board automation can override the status you just set.

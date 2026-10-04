@@ -1,6 +1,6 @@
 # Helios verification map
 
-The maintained recipes for verifying user-facing Helios behavior on the local stack. Pick the file that matches the change.
+How to reach and drive each Helios surface on the local stack. Lanes read the files for the surfaces their claim drives; the claims themselves come from the diff.
 
 | Feature | File |
 |---|---|

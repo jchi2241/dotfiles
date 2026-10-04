@@ -12,25 +12,7 @@ Ensure the output directory exists: `mkdir -p ~/.claude/thoughts/plans/`
 
 **Filename format:** `YYYY-MM-DD_<brief-one-liner-indicating-topic>.md`
 
----
-
-## Task Lists
-
-When you create tasks using the `TaskCreate` tool, Claude Code stores them in a **task list** directory:
-
-```
-~/.claude/tasks/<uuid>/
-├── 1.json    # Task #1
-├── 2.json    # Task #2
-├── 3.json    # Task #3
-└── ...
-```
-
-The UUID is automatically generated when the first task is created in a session. Each task is stored as a numbered JSON file containing the task's subject, description, status, and dependencies.
-
-**Why this matters:** The task list ID is session-specific. If an agent in a different session needs to work on these tasks, they need to know the task list path to find and update them. Always record the task list path in the plan header after creating tasks.
-
-**To find the current task list:** After creating tasks, check `~/.claude/tasks/` for the most recently created directory (by timestamp), or look at the task files to confirm they match your task subjects.
+The plan file is the only progress state. `/implement-plan` reads and updates it; there is no separate task list.
 
 ---
 
@@ -95,48 +77,15 @@ Before writing the full plan, present a structural outline:
 Does this phasing and PR split make sense? Should I adjust the order or granularity?
 ```
 
+In the same message, ask the push policy with `AskQuestion`: may `/implement-plan` push branches and open draft PRs as each PR passes its tests and lanes (`drafts`, recommended), or queue them for one ask per phase (`ask`)?
+
 **Wait for user feedback on structure before proceeding.**
 
 ### Step 3: Write Full Plan
 
 After structural approval, write the complete plan using the template below.
 
-### Step 4: Create Tasks
-
-After the plan is written:
-
-**Ask for approval before creating tasks:**
-```
-Plan written to `~/.claude/thoughts/plans/YYYY-MM-DD_<topic>.md`.
-
-Ready to create [N] tasks in Claude Code's task list. Proceed with task creation?
-```
-
-**Wait for user confirmation before proceeding.**
-
-Once approved, create tasks with complete context for independent implementation:
-
-1. Use `TaskCreate` to create each task from the plan's Task Breakdown section
-   - **CRITICAL:** The task `description` MUST contain everything an agent needs to implement independently:
-     ```
-     Implement "Task 3: Add database migration" from the plan.
-
-     **Plan file:** ~/.claude/thoughts/plans/2026-01-28_feature.md
-     **Section:** Task 3: Add database migration (search for "### Task 3:")
-
-     The plan is the source of truth. Read the full task section in the plan for:
-     - Detailed description
-     - Files to modify
-     - Implementation notes
-     - Success criteria
-     ```
-   - The description points to the plan; the plan contains all implementation details
-   - This allows `/implement-plan` to spawn Task agents with full context
-
-2. Use `TaskUpdate` to set up dependencies (`addBlockedBy` for tasks that depend on others)
-3. Find the task list directory: `ls -lt ~/.claude/tasks/ | head -5`
-4. Add the **Task List** path to the plan header
-5. Update the Changelog to note tasks were created
+The plan holds what is specific to this work. Rules that a skill owns (review, verification, PR format, gates, branches) are not copied into the plan. Point to the owner file instead, and check that every path you cite exists.
 
 ---
 
@@ -155,7 +104,7 @@ date: YYYY-MM-DD
 status: pending  # draft | pending | in_progress | complete | blocked
 spec: <path to spec, or null>
 research_doc: <path or null>
-task_list_id: <uuid, fill in after creating tasks>
+push: <drafts | ask>  # the operator's answer in Step 2
 phases_total: <N>
 phases_complete: 0
 prs_total: <N>
@@ -205,11 +154,10 @@ tasks_complete: 0
 
 ## Task Breakdown
 
-> **IMPORTANT:** Each task below is designed to be independently executable by an agent with fresh context. After creating tasks with `TaskCreate`, update each task's "Claude Code Task" field with its system ID (e.g., `#1`). Tasks are stored in `~/.claude/tasks/<task-list-id>/`.
+> **IMPORTANT:** Each task below is designed to be independently executable by an agent with fresh context.
 
 ### Task 1: [Descriptive Task Name]
 
-**Claude Code Task:** _#N_ _(fill in after TaskCreate)_
 **Blocked By:** None
 **Phase:** 1
 **PR:** PR-1
@@ -238,7 +186,6 @@ tasks_complete: 0
 
 ### Task 2: [Descriptive Task Name]
 
-**Claude Code Task:** _#N_ _(fill in after TaskCreate)_
 **Blocked By:** Task 1
 **Phase:** 1
 **PR:** PR-1
@@ -263,14 +210,16 @@ tasks_complete: 0
 - **Depends on:** None (base: `master`)
 - **Jira:** [story key]
 - **Tasks:** Task 1, Task 2
-- **Verify:** [targeted tests, and the live check with the evidence to capture]
+- **Verify:** [targeted test commands for the touched packages]
+- **Live claims:** one line each: [claim] → [action on the local stack] → [expected evidence]
 
 ##### PR-2: [Descriptive Name] [FE]
 - **Delivers:** [one sentence]
 - **Depends on:** PR-1 (base: PR-1's branch)
 - **Jira:** [story key]
 - **Tasks:** Task 3
-- **Verify:** [CCT tests, and screenshots of each state]
+- **Verify:** [CCT tests]
+- **Live claims:** [each UI state] → [how to reach it at `localhost:8001`] → [screenshot]
 
 #### Success Criteria
 
@@ -280,11 +229,7 @@ tasks_complete: 0
 - [ ] Type checking passes: `npm run typecheck`
 - [ ] Linting passes: `make lint`
 
-**Manual Verification:**
-- [ ] [Feature works as expected when tested via UI]
-- [ ] [No regressions in related features]
-
-**Implementation Note:** After completing this phase and all automated verification passes, pause for manual confirmation before proceeding to the next phase.
+**Live Verification:** every PR's live claims pass in one deploy of the phase's stack (`/implement-plan` Step 4).
 
 ---
 
@@ -325,9 +270,9 @@ tasks_complete: 0
 
 ## Changelog
 
-| Date | Task | Claude Code Task ID | Changes |
-|------|------|---------------------|---------|
-| YYYY-MM-DD | - | - | Initial plan created |
+| Date | Task | Changes |
+|------|------|---------|
+| YYYY-MM-DD | - | Initial plan created |
 
 ```
 
@@ -336,10 +281,6 @@ tasks_complete: 0
 ## Task Completion Protocol
 
 **CRITICAL:** When an agent works on a task, they MUST update this plan file:
-
-### When Starting a Task:
-1. Record the Claude Code task_id in the **Claude Code Task:** field
-2. Add an entry to the Changelog
 
 ### When Completing a Task:
 1. **Fill in "Actual Implementation" section** with:
@@ -350,10 +291,7 @@ tasks_complete: 0
 
 2. **Update the Changelog** with completion details
 
-3. **Update the task status** using `TaskUpdate` with `status: "completed"`
-   - This updates Claude Code's task panel and persists the status
-
-4. **Update frontmatter counters:**
+3. **Update frontmatter counters:**
    - Increment `tasks_complete`
    - Increment `prs_complete` if the PR's tasks are done and the PR is opened
    - Increment `phases_complete` if phase is done
@@ -365,23 +303,10 @@ This ensures agents with fresh context picking up subsequent tasks have accurate
 
 ## Example Task Update
 
-Before (after plan created, before tasks created):
+Before:
 ```markdown
 ### Task 3: Add database migration
 
-**Claude Code Task:** _#N_ _(fill in after TaskCreate)_
-**Blocked By:** Task 2
-**Phase:** 2
-
-#### Actual Implementation
-> _To be filled in by the implementing agent upon completion_
-```
-
-After tasks created with TaskCreate:
-```markdown
-### Task 3: Add database migration
-
-**Claude Code Task:** #3
 **Blocked By:** Task 2
 **Phase:** 2
 
@@ -393,7 +318,6 @@ After implementation complete:
 ```markdown
 ### Task 3: Add database migration
 
-**Claude Code Task:** #3
 **Blocked By:** Task 2
 **Phase:** 2
 
@@ -415,13 +339,7 @@ Added migration `20260128_add_domain_id_index.sql`:
 
 ## After Plan is Complete
 
-When the plan is written and tasks are created:
-
-1. Find the task list ID: `ls -lt ~/.claude/tasks/ | head -5`
-2. Update the frontmatter fields:
-   - `task_list_id`: the UUID
-   - `status`: `in_progress`
-   - `phases_total`, `prs_total`, and `tasks_total`: actual counts
+When the plan is written, set `status: pending`, `push`, and the actual `phases_total`, `prs_total`, and `tasks_total`.
 
 End your response with:
 
@@ -429,19 +347,12 @@ End your response with:
 ## Plan Complete
 
 **Plan file:** `~/.claude/thoughts/plans/YYYY-MM-DD_<topic>.md`
-**Task list:** `~/.claude/tasks/<uuid>/`
+**Push policy:** [drafts / ask]
 
-**Next step — start implementation (choose one):**
-
-# Option 1: New session with Task API support
-CLAUDE_CODE_TASK_LIST_ID=<uuid> claude
-/implement-plan ~/.claude/thoughts/plans/YYYY-MM-DD_<topic>.md
-
-# Option 2: Quick start (uses JSON fallback for task tracking)
-/implement-plan ~/.claude/thoughts/plans/YYYY-MM-DD_<topic>.md
+**Next step:** /implement-plan ~/.claude/thoughts/plans/YYYY-MM-DD_<topic>.md
 ```
 
-After each phase completes, the session ends. Use `/continue-plan` in a fresh session to resume.
+To resume later, in any session, rerun the same command or `/continue-plan`.
 
 ---
 

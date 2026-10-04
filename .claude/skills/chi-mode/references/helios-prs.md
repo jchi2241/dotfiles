@@ -32,7 +32,7 @@ Several PRs share one story key. Ticket granularity rules live in the `analyst-j
 Follow Helios `migrations/README.md`.
 
 1. Put the migration in its own PR, with no application code.
-2. After review, file the apply ticket with the `helios-migration-jira-ticket` skill, which sets the title and the applier.
+2. The apply ticket, its preconditions, title, and applier: follow the `helios-migration-jira-ticket` skill.
 3. Do not merge on approval. Merge only after the applier has applied it to staging and production. The operator doesn't apply these.
 4. Application code that reads the new columns merges after the apply.
 5. Make backfills, install hooks, and retries idempotent. A second run changes nothing, and a run that stops halfway finishes on a rerun.

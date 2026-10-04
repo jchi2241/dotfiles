@@ -34,7 +34,7 @@ To add a workflow: write `playbooks/<name>.md` as numbered steps that name the s
 
 ## Gates (always stop and ask)
 
-- Pushing a branch or opening a PR, unless the operator asked for it in this session.
+- Pushing a branch or opening a PR, unless the operator asked for it in this session, or the plan's `push: drafts` covers that draft PR.
 - Any request that says "don't make changes yet" or "don't take action yet". Stay read-only.
 - Creating, editing, or moving Jira tickets between sprints.
 - Editing the PRD body. Propose wording in chat instead.
@@ -66,10 +66,10 @@ Each concern has one owner. Do not restate an owner's rules here.
 
 | Concern | Owner |
 |---|---|
-| Stages of the work | The commands: `/create-spec`, `/create-plan`, `/implement-plan`, `/review-implementation` |
+| Stages of the work | The commands: `/create-spec`, `/create-plan`, `/implement-plan` |
 | How to cut work into PRs | [`references/helios-prs.md`](references/helios-prs.md) |
 | Per-task implement and review loop | `subagent-driven-development` |
-| Review before a PR opens | [`references/review-before-pr.md`](references/review-before-pr.md) |
+| Code review: lanes, briefs, triage | [`references/review-lanes.md`](references/review-lanes.md) |
 | Commit messages | `commit` |
 | PR title, sections, and `gh pr create` | `pr-create` |
 | PR body prose | `writing-pr-descriptions` |
@@ -89,7 +89,7 @@ The principles index lives in `~/.claude/CLAUDE.md` and is always loaded. Playbo
 - Give each subagent pointers, not pasted content: the plan path, the PR section, the spec sections, and file paths.
 - Delegate implementation through `/implement-plan`, which uses `subagent-driven-development`.
 - You own every subagent's output. Read the diff. Do not repeat its summary as fact.
-- Review is done by a fresh agent, never the author, given only the diff and the intent. See [`references/review-before-pr.md`](references/review-before-pr.md).
+- Review is done by fresh agents, never the author, one job each, given only that job, the diff, and the intent. See [`references/review-lanes.md`](references/review-lanes.md).
 
 ## Reply
 

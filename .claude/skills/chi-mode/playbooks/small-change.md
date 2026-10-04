@@ -13,7 +13,7 @@ For one PR where the approach is clear from the code.
    - Write a test that fails without the change, per `principle-test-behavior-not-implementation`.
    - Run the `verify-helios` skill on the claims the diff makes, per `principle-prove-it-works`.
    - Run `blast-radius` when the change touches a shared contract, a schema, or code that old gateways run.
-   - Review with one reviewer, and handle its findings, per [`../references/review-before-pr.md`](../references/review-before-pr.md).
+   - Review with the correctness, tests, and standards lanes, and handle their findings, per [`../references/review-lanes.md`](../references/review-lanes.md).
 6. **Open the PR, when the operator asks.** Use `pr-create`.
 
 **Escalate** to `feature.md` when the change needs a second PR, a migration, a codegate, a GraphQL change that gateways read, or a product decision.

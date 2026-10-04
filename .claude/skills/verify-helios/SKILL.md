@@ -5,9 +5,9 @@ description: Drive the local Helios stack the way a user does and prove a change
 
 # Verify Helios
 
-Prove behavior on the real local stack, not with tests alone. Read [`features/README.md`](features/README.md), then the feature file that matches the change, and follow its recipe.
+Prove behavior on the real local stack, not with tests alone. The root frames the claims from the diff, fans out one lane per claim, then audits the receipts before it gives the verdict.
 
-The claims come from the diff, not the feature file. A recipe says how to drive a path. It does not say what this change altered. Before driving, read the diff and list each behavior it changes. Then pick the recipe steps that exercise those behaviors, and add the observation each claim needs, such as a metric scrape, a log line, a GraphQL read-back, or a UI state. Skip recipe steps no claim depends on. A recipe that passes without observing the changed behavior proves nothing about the change.
+The claims come from the diff, not the feature files. A feature file in [`features/`](features/README.md) says how to reach and drive a surface: users, URLs, selectors, commands, and gotchas. It does not say what this change altered, and it is not a checklist. A lane that passes without observing the changed behavior proves nothing about the change.
 
 ## Launch
 
@@ -23,6 +23,23 @@ Ready means `scripts/doctor.sh` prints `Stack is worth driving.`
 `scripts/doctor.sh` is read-only. Run it before the first drive, after any drive that fails or surprises you, and after any restart. It checks the k3d API, the State SVC, Auth SVC, Nova Gateway, AuraCtx, and UMG deployments and endpoints, and which checkout serves `:8001`. `--no-portal` skips the portal checks for GraphQL-only work.
 
 A doctor failure caused by this skill being out of date is drift: fix this skill, then rerun.
+
+## Frame
+
+The root does this, before any lane starts.
+
+1. Read `git diff <base>...<sha>` and list every behavior it adds, changes, or removes. Each one is a claim.
+2. Restate each claim so it can fail: the condition, what you observe (a UI state, a GraphQL read-back, a log line, a metric), and the threshold.
+3. Add a **regression** claim: the load-bearing user path, run on the base and on the head with the same recipe. If the base lacks the feature, record that and prove the end state the user waits for on the head.
+4. Add a **gates** claim: the targeted tests and lint for the changed packages at the SHA.
+5. Mark each claim **read-only** or **mutating**. Mutating means it changes shared stack state: codegates, an org's contract, budget rows, service images.
+
+## Lanes
+
+- One fresh agent per claim, model role `verify lanes`. Its brief: the claim as restated, the SHA, the feature files for the surfaces it drives, its `$EVIDENCE` subdirectory, and the report shape below. Nothing about other claims.
+- The local stack is shared: one k3d cluster, one `:8001`, one Postgres. Read-only lanes run in parallel. Mutating lanes run one at a time, each restoring the state it changed before it reports. Lanes that each set up their own org or user can run in parallel.
+- Each lane follows **Drive**, **Evidence**, and **Cleanup** below, and returns `VERIFIED`, `NOT VERIFIED`, or `INCONCLUSIVE` with the steps it ran, the artifact paths, and what it observed. A lane that can prove a defect lists every defect it can prove, not only the first.
+- When the caller cannot spawn agents, run the lanes yourself in order, and leave the audit to the caller.
 
 ## Drive
 
@@ -40,7 +57,7 @@ A doctor failure caused by this skill being out of date is drift: fix this skill
 
 ## Evidence
 
-Write everything for one run under `EVIDENCE=~/Pictures/verify-helios/$(date +%Y-%m-%d_%H%M)_<slug>/`. The time keeps concurrent runs of the same feature apart.
+Write everything for one run under `EVIDENCE=~/Pictures/verify-helios/$(date +%Y-%m-%d_%H%M)_<slug>/`. The time keeps concurrent runs of the same feature apart. Each lane writes under its own `$EVIDENCE/<claim-id>/`, and its playwright session name includes the claim ID.
 
 - Exercise the real user path. No test-only endpoints, no setting state directly to force the result.
 - Capture the action and the resulting state, not only the final screen.
@@ -63,13 +80,18 @@ Write everything for one run under `EVIDENCE=~/Pictures/verify-helios/$(date +%Y
 
 ## Verdict
 
-For each claim the change makes:
+Each lane returns exactly one verdict for its claim: `VERIFIED`, `NOT VERIFIED`, or `INCONCLUSIVE`. A wrong surface, a skipped hop, a missing baseline, or a run that never observed the changed behavior is `INCONCLUSIVE`, not a pass. For a UI behavior claim with no video, the verdict is `INCONCLUSIVE`.
 
-1. Restate it so it can fail: the condition, what you observe, and the threshold.
-2. When the claim is a change in behavior, capture a baseline on the base branch first, then the treatment on the branch under test, with the same recipe.
-3. Return exactly one verdict: `VERIFIED`, `NOT VERIFIED`, or `INCONCLUSIVE`. A wrong surface, a skipped hop, a missing baseline, or a run that never observed the changed behavior is `INCONCLUSIVE`, not a pass.
+## Audit
 
-Write the commit SHA under test, each claim, the steps, the artifact paths (videos included), and the verdict to `$EVIDENCE/verdict.md`. The verdict holds for that commit. A later commit that touches code on a claim's path needs a new run for that claim. For a UI behavior claim with no video, the verdict is `INCONCLUSIVE`.
+The root audits the receipts before it writes the verdict. It did not drive the lanes, so it reads them cold and distrusts each lane's summary:
+
+1. Every claim from **Frame** has a lane result. A missing or dropped lane is a gap, and a gap is not a pass.
+2. Each `VERIFIED` cites artifacts that show the claim's observation at the claim's threshold. Open them. A screenshot that shows a different state, a log line from another request, or a step that set state directly to force the result makes that claim `INCONCLUSIVE`.
+3. Each workaround a lane used (a stubbed response, seeded data, a skipped hop) is named in the verdict with what it leaves unproven.
+4. The diff makes no behavior change that no claim covers. If it does, frame that claim and run its lane.
+
+Write the commit SHA under test, each claim, its lane's steps and artifact paths (videos included), the audit notes, and the verdict to `$EVIDENCE/verdict.md`. The verdict holds for that commit. A later commit that touches code on a claim's path needs a new lane run for that claim, and a new audit.
 
 ## Cleanup
 
