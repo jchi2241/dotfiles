@@ -3,8 +3,8 @@
   "hooks": {
     "beforeShellExecution": [
       {
-        "command": "./hooks/block-whole-tree-builds.sh",
-        "matcher": "go\\s+(build|test|vet)|cypress"
+        "command": "./hooks/block-whole-tree-builds.py",
+        "matcher": "go\\s+(build|test|vet)|cypress|cct:run"
       }
     ]
   }
