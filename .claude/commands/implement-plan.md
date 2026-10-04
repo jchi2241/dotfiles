@@ -84,7 +84,7 @@ Tasks in the same PR may run in parallel only when their "Files to Modify" lists
 
 Commit any leftover work with `/commit`. Then, on that one SHA, start both at once:
 
-- **Targeted tests:** the PR's Verify tests, plus lint, on the touched packages and components only. Never `go build ./...` or the full suite per PR; leave wide coverage to CI.
+- **Targeted tests:** the PR's Verify tests, plus lint, on the touched packages and components only: `go test -p 2 ./named/pkg/`, and `cd frontend && pnpm run cct:run --spec <path>` per touched spec. Never `go build ./...` or the full suite per PR; leave wide coverage to CI.
 - **Lanes:** per `~/.claude/skills/chi-mode/references/review-lanes.md`. Say the Risky call and its reason when you launch them. In `--yolo`, one `reviewers` agent instead.
 
 Start the next PR's tasks while these run.

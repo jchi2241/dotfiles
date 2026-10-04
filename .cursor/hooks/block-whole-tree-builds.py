@@ -5,7 +5,7 @@ Blocks:
   - go build/test/vet with ./..., ..., or all
   - Cypress runs (cypress run, cct:run) that are not a targeted --spec run:
     no --spec, --spec after a bare `--` (Cypress then ignores it and runs every
-    spec), a whole-tree glob, or `npm exec cypress` (npm eats the flags; use npx)
+    spec), a whole-tree glob, or `npm exec cypress` (npm takes the flags)
 
 Only real invocations count, not text: `echo go build ./...` or a commit
 message mentioning it is allowed. Nested `bash -c '...'` scripts are scanned.
@@ -20,7 +20,17 @@ import re
 import shlex
 import sys
 
-SPEC_EXAMPLE = 'npx cypress run --component --spec "src/pages/path/to/file.spec.tsx"'
+CYPRESS_HOWTO = (
+    "Run only the specs you touched, from the worktree root:\n"
+    "  direnv exec . bash -c 'cd frontend && pnpm run cct:run --spec src/pages/path/to/file.spec.tsx'\n"
+    "cct:run adds --spec to its own setup (msw init, NODE_ENV=test, Chrome). Several specs: "
+    "--spec a.spec.tsx,b.spec.tsx. Never put a bare `--` before --spec, and never use `npm exec cypress`."
+)
+GO_HOWTO = (
+    "Build and test only the packages you touched, from the worktree root:\n"
+    "  direnv exec . bash -c 'cd singlestore.com/helios && go test -p 2 ./billing/analystbudget/ ./graph/server/public/ -run TestName'\n"
+    "Use pkg/... only for a package you changed and its subpackages, and go build -p 2 / go vet the same way."
+)
 WRAPPERS = {"exec", "time", "env", "nice", "nohup", "command", "builtin"}
 
 
@@ -74,7 +84,7 @@ def spec_problem(args):
         if any(a == "--spec" or a.startswith("--spec=") for a in args[dash + 1 :]):
             return (
                 "A bare `--` before --spec ends option parsing, so Cypress ignores --spec "
-                f"and runs every spec. Drop the `--`: {SPEC_EXAMPLE}"
+                f"and runs every spec.\n{CYPRESS_HOWTO}"
             )
     specs = []
     for i, a in enumerate(args):
@@ -83,11 +93,11 @@ def spec_problem(args):
         elif a.startswith("--spec="):
             specs.append(a.split("=", 1)[1])
     if not specs:
-        return f"Cypress runs must name the specs the change touches: {SPEC_EXAMPLE}"
+        return f"Full Cypress runs are blocked; this one has no --spec.\n{CYPRESS_HOWTO}"
     for s in specs:
         for part in s.split(","):
             if re.match(r"^(\./)?((src|cypress)/)?\*\*", part.strip()):
-                return f"`--spec {s}` matches the whole tree. Name the spec files the change touches: {SPEC_EXAMPLE}"
+                return f"`--spec {s}` matches the whole tree, so it is a full run.\n{CYPRESS_HOWTO}"
     return None
 
 
@@ -99,13 +109,10 @@ def check(toks):
 
     if head == "go" and len(toks) > 1 and toks[1] in ("build", "test", "vet"):
         if any(a in ("./...", "...", "all") for a in toks[2:]):
-            return (
-                "Whole-module Go builds and tests (./..., all) are blocked. Name the packages "
-                "the change touches, e.g. go test -p 2 ./graph/server/public/ ./billing/analystbudget/..."
-            )
+            return f"Whole-module Go builds and tests (./..., all) are blocked.\n{GO_HOWTO}"
 
     if head == "npm" and len(toks) > 2 and toks[1] == "exec" and toks[2].rsplit("/", 1)[-1] == "cypress":
-        return f"`npm exec cypress` passes Cypress flags to npm. Use npx: {SPEC_EXAMPLE}"
+        return f"`npm exec cypress` hands Cypress's flags to npm instead.\n{CYPRESS_HOWTO}"
 
     if head in ("pnpm", "npm", "yarn"):
         rest = toks[1:]

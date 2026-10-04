@@ -36,7 +36,7 @@ Same for every lane. Only the job line and the files it reads change. Never add 
 
 ```
 Read-only. Do not edit tracked files, commit, push, or check out branches.
-You may build and test to prove a finding, scoped to the packages or specs the diff touches: `go build`/`go vet`/`go test -p 2` on named packages (never `./...` from a repo or module root), and one CCT spec or test file at a time (never the full frontend suite or recursive lint). Scratch files, such as mutation overlays, go under /tmp/review/<pr>-<lane>/, never a new worktree or a copy of the repo.
+You may build and test to prove a finding, scoped to the packages or specs the diff touches: `go build`/`go vet`/`go test -p 2` on named packages (never `./...` from a repo or module root), and one CCT spec or test file at a time with `cd frontend && pnpm run cct:run --spec <path>` (never the full frontend suite, recursive lint, or a bare `--` before `--spec`). Scratch files, such as mutation overlays, go under /tmp/review/<pr>-<lane>/, never a new worktree or a copy of the repo.
 Your one job: <the lane's job, from the table>. Report nothing outside it.
 Read these first; they define your job: <the lane's files>.
 Worktree: <path>. Diff: `git diff <base>...<sha>`; read files with `git show <sha>:<path>`.

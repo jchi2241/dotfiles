@@ -76,7 +76,7 @@ Once clear on requirements:
 
 **You MUST complete ALL of these before reporting COMPLETED. No exceptions.**
 
-1. **Run every verification command** from the Success Criteria. Do not run `make backend-lint`; use `make backend-lint-fast` instead. Keep the full output in your own context — do NOT paste it in the report to the orchestrator. The "Verified" line in the report summarizes it (e.g., `pytest tests/ — 32 passed`).
+1. **Run every verification command** from the Success Criteria, scoped to what you touched. Go: `go test -p 2 ./pkg/you/changed/ -run TestName` on named packages, never `./...` from the module root. Cypress: `cd frontend && pnpm run cct:run --spec src/pages/path/to/file.spec.tsx`, never the whole suite, a bare `--` before `--spec`, or `npm exec cypress`. A hook refuses the whole-tree forms. Do not run `make backend-lint`; use `make backend-lint-fast` instead. Keep the full output in your own context — do NOT paste it in the report to the orchestrator. The "Verified" line in the report summarizes it (e.g., `pytest tests/ — 32 passed`).
 2. **All tests must pass.** If any test fails, you are not done. Fix it or report FAILED.
 3. **Read your own diff.** Run `git diff` and read every line you changed. Look for:
    - Debug prints, commented-out code, TODOs

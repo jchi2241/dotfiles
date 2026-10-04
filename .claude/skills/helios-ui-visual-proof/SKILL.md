@@ -47,7 +47,7 @@ Always set both:
 1. In the spec's render helper: `cy.viewport(1024, 768)`, then render inside `cy.then(...)`. `cy.viewport` is queued and `render()` is sync, so calling `render()` immediately still paints at 1920. Do not use `--config viewportWidth`; `component.viewportWidth` in `frontend/cypress.config.ts` wins over the CLI.
 2. In `onBeforeBrowserLaunch` for Chromium: `--window-size=1060,920` (slightly larger than 1024×768) and `--force-device-scale-factor=1`. Matching window size to the viewport still clips.
 3. After assertions: `cy.screenshot("descriptive-name", { capture: "viewport" })`. Prefer `viewport` over `fullPage`; `fullPage` plus Radix tooltips can hang the runner.
-4. Run locally: `direnv exec . bash -c 'cd frontend && NODE_ENV=test pnpm exec cypress run --component --browser chrome --spec "…"'`. Do not send CCT screenshot jobs to CI.
+4. Run locally, one spec only: `direnv exec . bash -c 'cd frontend && pnpm run cct:run --spec src/pages/path/to/file.spec.tsx'`. `cct:run` supplies `NODE_ENV=test` and Chrome. No bare `--` before `--spec`. Do not send CCT screenshot jobs to CI.
 5. Pixel size must be exactly 1024×768, with right-edge controls in frame. `1280×577` means clipping. Recapture with the pair above; do not bump to 1920.
 6. Copy PNGs out of `frontend/cypress/screenshots/` immediately, because Cypress can clear them between runs.
 

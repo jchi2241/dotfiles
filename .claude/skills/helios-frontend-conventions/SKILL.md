@@ -110,9 +110,18 @@ direnv exec <worktree> bash -c 'cd frontend && pnpm run -r --no-bail --workspace
 
 Fix every lint error before pushing. Do not rely on `tsgo`, `ReadLints`, `prettier`, or `lint:fix` alone; they can miss repo-wide ESLint failures such as duplicate imports and unused imports introduced during follow-up review fixes.
 
+## 5. Run only the CCT specs you touched
+
+```bash
+direnv exec <worktree> bash -c 'cd frontend && pnpm run cct:run --spec src/pages/path/to/file.spec.tsx'
+```
+
+`cct:run` sets up msw, `NODE_ENV=test`, and Chrome, and passes `--spec` through. Several specs: `--spec a.spec.tsx,b.spec.tsx`. A full-suite run belongs to CI. A hook refuses full runs, a bare `--` before `--spec` (Cypress then ignores it and runs every spec), whole-tree globs, and `npm exec cypress`.
+
 ## Common Mistakes
 
 - Using `&&` for "simple" one-liners -- the rule applies regardless of element complexity
 - Defining `renderX` as arrow functions inside a component -- extract to a named component
 - Using ternaries to toggle between two components -- use if/else blocks instead
 - Pushing after only `tsgo` or editor lints. Run the recursive frontend lint command after the final diff.
+- `npx cypress run --component -- --spec x`: the `--` drops `--spec` and runs the whole suite. Use `pnpm run cct:run --spec x`.

@@ -9,6 +9,7 @@ When the user asked for a PR ("open a PR", "take it to the finish line"), finish
    - Default: add or update a focused CCT for the user-visible behavior. Read and follow Helios `agent/skills/frontend-cct-instructions/SKILL.md` first.
    - Skip the CCT for portal admin-only features, very minor tweaks, copy-only changes, or setups that would be artificial. State the reason.
    - Prove red then green when practical.
+   - Run only the specs you touched: `direnv exec <worktree> bash -c 'cd frontend && pnpm run cct:run --spec src/pages/path/to/file.spec.tsx'` (several: `--spec a.spec.tsx,b.spec.tsx`). Never run the whole suite, never put a bare `--` before `--spec` (Cypress then ignores it and runs every spec), and never use `npm exec cypress`. A hook refuses all three.
 4. **Check.** Run both, from the worktree root:
 
    ```bash
