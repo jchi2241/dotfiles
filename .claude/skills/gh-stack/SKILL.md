@@ -73,7 +73,7 @@ gh stack rebase --upstack
 gh stack push          # force-with-lease; does not update PR metadata
 ```
 
-Without local tracking: rebase with git as usual, `git push --force-with-lease` the affected branches, then `gh stack link` only if membership/bases must change.
+Without local tracking: load the `restack` skill (Skill tool) and follow it. It does one `--update-refs` cascade and one atomic `--force-with-lease` push. Then run `gh stack link` only if membership/bases must change.
 
 ### Merge
 
