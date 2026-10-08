@@ -12,7 +12,8 @@
   "permissions": {
     "allow": [
       "Read(~/.claude/thoughts/**)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "model": "opus",
   "hooks": {
@@ -71,6 +72,8 @@
   },
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
+  "preferredNotifChannel": "ghostty",
+  "teammateMode": "in-process",
   "feedbackSurveyState": {
     "lastShownTime": 1754033590915
   }
