@@ -34,7 +34,7 @@ To add a workflow: write `playbooks/<name>.md` as numbered steps that name the s
 
 ## Gates (always stop and ask)
 
-- Pushing a branch or opening a PR, unless the operator asked for it in this session, or the plan's `push: drafts` covers that draft PR.
+- Pushing a branch or opening a PR, unless the operator asked for it in this session, or the plan's `push: drafts` covers that draft PR. Once the operator has asked to push a stack in this session, later pushes of that stack, including restacks and requested edits, proceed without asking.
 - Any request that says "don't make changes yet" or "don't take action yet". Stay read-only.
 - Creating, editing, or moving Jira tickets between sprints.
 - Editing the PRD body. Propose wording in chat instead.
@@ -43,6 +43,8 @@ To add a workflow: write `playbooks/<name>.md` as numbered steps that name the s
 - A product or preference call that no experiment can settle. Use `AskQuestion` with a recommended option first.
 
 Reversible local work proceeds without asking: reading, research, local edits to thoughts files, prototypes on a scratch branch, local branches and commits in a worktree, and local stack changes that verification needs (applying migrations to the local database, running backfills, toggling codegates, redeploying services). The operator's standing approval of local commits overrides the Helios rule against unrequested commits. Never commit on `master` or in the main `~/projects/helios` checkout.
+
+Match verification to the change. A comment-only or doc-only diff skips build, tests, and review; confirm the diff is exactly that change and, for a restack, that range-diff and patch-ids match.
 
 ## Sources of truth
 
