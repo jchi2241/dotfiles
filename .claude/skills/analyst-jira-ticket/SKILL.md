@@ -12,9 +12,12 @@ Use this for Jira tickets about the SingleStore Analyst / Aura Analyst / SQL Bot
 - Jira project: `MCDB`
 - Label: `Analyst` (capitalized — matches existing Analyst tickets; JQL matching is case-insensitive)
 - Component: `Analyst` (not `AI & Compute Platform`)
-- Issue type: only `Epic`, `Story`, or `Sub-task` under a story. Never create a `Task` or a `Bug`.
-  - `Story` for any outcome: a feature, a fix for broken behavior, or technical follow-up.
-  - `Epic` for a body of work that spans several stories.
+- Issue type: `Epic`, `Story`, `Bug`, or `Sub-task`. Never create a `Task`.
+  - Hierarchy: epic > story (or bug) > sub-task.
+  - If the operator asks for a "task", create a `Story`.
+  - `Story` for any outcome: a feature, a doc or one-pager, or technical follow-up.
+  - `Bug` when the operator calls it a bug, or it fixes broken behavior.
+  - `Epic` when the operator asks for an epic, or for a body of work spanning several stories.
   - `Sub-task` only under a story, with that story as `parent`.
 - Search before creating when the request may duplicate prior Analyst work.
 
@@ -110,10 +113,10 @@ Set these through `additional_fields` on create, or `fields` on edit:
 - Analyst board: `2902`
 - Justin Chi (`jchi@memsql.com`): `557058:4dbbea40-3f6d-4a79-a74d-cea0491299a3`
 
-## Finding the current Analyst sprint
+## Finding the Analyst sprints
 
-Sprint IDs roll over, so look one up instead of hardcoding. Read
-`customfield_10021` off a recent Analyst ticket:
+Sprint IDs roll over, so look them up instead of hardcoding. Read
+`customfield_10021` off recent Analyst tickets:
 
 ```
 searchJiraIssuesUsingJql
@@ -121,8 +124,21 @@ searchJiraIssuesUsingJql
   fields: ["summary", "customfield_10021"]
 ```
 
-The `state: "active"` entry is the current sprint (e.g. `Analyst-Sprint-2026-N`).
+`openSprints()` returns active and future sprints.
+The `state: "active"` entry is the current sprint, and the earliest `state: "future"` entry is the next one.
 Naming pattern is `Analyst-Sprint-<year>-<n>` on two-week cadence.
+If no ticket sits in a future sprint yet, list the sprints of board `2902` (`discover` "list sprints for a board").
+If the board has no future sprint, use the active sprint and say the next one doesn't exist yet.
+
+## Sprint placement
+
+Decide the sprint yourself; don't ask, and never leave a ticket in the backlog unless the operator says so.
+
+- **Active sprint, In Progress:** work is already underway, or starts now (the operator says "in progress", "start", or is doing it in this session).
+- **Active sprint, left Qualified:** not started, but it is small enough to finish before the active sprint's `endDate` and nothing blocks it.
+- **Next sprint, left Qualified (to do):** it depends on unmerged or unscheduled work, it is a follow-up, the operator says "later" or "next", or the active sprint ends within 3 days.
+
+State the choice and the reason in the reply, for example "next sprint (Analyst-Sprint-2026-6): blocked on Phase 1".
 
 ## Transitions
 
@@ -144,13 +160,13 @@ Common transition IDs on MCDB Task/Story (verify with
 Sprint and epic can both be set on the initial `createJiraIssue` call; only the
 status needs a second step.
 
-1. Look up the active sprint ID (above).
-2. `createJiraIssue` with `projectKey: "MCDB"`, `issueType` (`Story`, `Epic`, or `Sub-task`), `summary`,
+1. Look up the sprint IDs and pick one per "Sprint placement".
+2. `createJiraIssue` with `projectKey: "MCDB"`, `issueType` (`Story`, `Bug`, `Epic`, or `Sub-task`), `summary`,
    `description` (markdown is accepted and converted), and `additional_fields`
    carrying `labels`, `components`, and `customfield_10017`. Pass the sprint ID as
    `assignToSprint` and the account ID as `assignee`. `customfield_10021` in
    `additional_fields` is rejected on create ("Specify a valid value for Sprint").
-3. `getTransitionsForJiraIssue`, then `transitionJiraIssue` to In Progress.
+3. Only when placement says In Progress: `getTransitionsForJiraIssue`, then `transitionJiraIssue` to In Progress.
 4. Re-read the issue to confirm epic, sprint, assignee, and status all stuck —
    board automation can override the status you just set.
 
