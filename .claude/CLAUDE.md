@@ -33,8 +33,9 @@ Skills name a model role, written as model role `<name>`, instead of a model. Pa
 | `contrast` | `gpt-5.6-sol-xhigh` | A second family for a different read: `/reflect` tooling, the second correctness lane on Risky PRs in `review-lanes.md` |
 | `code workers` | `cursor-grok-4.6-high` | Implementers and fixers in `/implement-plan` |
 | `verify lanes` | `cursor-grok-4.6-high` | `verify-helios` claim, regression, and gates lanes |
-| `reviewers` | `claude-opus-5-5-medium` | Every review lane in `review-lanes.md` except spec |
+| `reviewers` | `claude-opus-5-5-medium` | Every review lane in `review-lanes.md` except spec and comments |
 | `spec lane` | `cursor-grok-4.6-high` | The spec lane in `review-lanes.md` |
+| `comments lane` | `claude-sonnet-5-5-high` | The comments lane in `review-lanes.md` |
 | `panel` | `claude-opus-5-5-medium`, `gpt-5.6-sol-xhigh`, `cursor-grok-4.6-high` | One subagent per entry: `arena` and `architect` runners, `interrogate` reviewers, and the `arena` judge pool. Never PR review; that is `reviewers` per `review-lanes.md` |
 <!-- models:end -->
 

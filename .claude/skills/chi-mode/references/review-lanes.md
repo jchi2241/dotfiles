@@ -10,11 +10,12 @@ Review a PR as soon as its last commit exists, alongside its targeted tests on t
 |---|---|---|---|
 | correctness | Can this behave wrong at runtime: races, failure paths, fail-open versus fail-closed, contracts with callers? | `principle-fail-early`, `principle-make-operations-idempotent`, `principle-strong-invariants`; `principle-fix-root-causes` for a bug fix | `reviewers`; on a Risky PR also `contrast`, as a second agent with the same brief |
 | tests | Do the tests prove the behavior? Would any still pass with the change reverted? What behavior is untested? | `principle-test-behavior-not-implementation`, `principle-prove-it-works` | `reviewers` |
-| standards | Does it read like this codebase: repo conventions, dead or duplicated code, comments, generated files? | `ponytail`, `principle-readable-code`, `principle-refactor-over-accumulation`, `principle-only-referenced-code`; the Helios `agent/skills/` that match the diff (`go-errors`, `codegate`, `graphql-*`, frontend) | `reviewers` |
+| standards | Does it read like this codebase: repo conventions, dead or duplicated code, generated files? Comments belong to the comments lane. | `ponytail`, `principle-readable-code`, `principle-refactor-over-accumulation`, `principle-only-referenced-code`; the Helios `agent/skills/` that match the diff (`go-errors`, `codegate`, `graphql-*`, frontend) | `reviewers` |
+| comments | Does every comment the diff adds, edits, or makes false earn its place? Which comments hide code that should change instead? | `comment-review`, `principle-readable-code` | `comments lane` |
 | spec | Does the diff do what its plan section says? List every deviation. Only when a plan section exists. | the plan's `PR-N` section and the spec sections it cites | `spec lane` |
 | integration | Do the PRs since the last phase boundary fit together: branch ancestry, deploy order, gate dependencies, shapes and contracts that cross PRs? | `principle-strong-invariants`, [`helios-prs.md`](helios-prs.md), the design document | `reviewers` |
 
-The spec lane runs on model role `spec lane`; every other lane on model role `reviewers`.
+The spec lane runs on model role `spec lane`, the comments lane on model role `comments lane`, and every other lane on model role `reviewers`.
 
 Principle files live at `~/.claude/skills/<name>/SKILL.md`. The index in `~/.claude/CLAUDE.md` stays the writer's trigger table; a lane reads only the files in its row.
 
@@ -22,9 +23,9 @@ Principle files live at `~/.claude/skills/<name>/SKILL.md`. The index in `~/.cla
 
 | Moment | Lanes |
 |---|---|
-| A PR's last commit exists | correctness, tests, standards, and spec when a plan section exists, in parallel on that SHA |
+| A PR's last commit exists | correctness, tests, standards, comments, and spec when a plan section exists, in parallel on that SHA |
 | End of a phase in `/implement-plan` | integration, over that phase's PRs |
-| Push or open | none, when the pushed SHA is the reviewed SHA |
+| Push or open | none, when the pushed SHA is the reviewed SHA, or a fix commit on it that closed its reruns or needed none |
 
 A PR is **Risky** when it touches locking or concurrency, auth or permissions, limits or money, fail-open versus fail-closed handling, a contract another service reads, or a backfill. When unsure, call it Risky. Say the call and its reason when you launch the lanes.
 
@@ -32,7 +33,7 @@ A reviewer is a fresh agent. Never a fork, and never the agent that wrote the co
 
 ## The brief
 
-Same for every lane. Only the job line and the files it reads change. Never add suspected risks, earlier findings, or hints about where to look.
+Same for every lane. Only the job line and the files it reads change. Never add suspected risks, earlier findings, or hints about where to look. A rerun uses the rerun brief under After findings instead.
 
 ```
 Read-only. Do not edit tracked files, commit, push, or check out branches.
@@ -60,20 +61,49 @@ Triage from the reports, never from a reviewer's reply or a summary of it.
 1. Build the index without an agent in between:
    `rg -N --no-heading '^### F' /tmp/review/<pr>-*.md | sort -t'|' -k3`
    Sorting on `file:line` puts the same finding from two lanes next to each other.
-2. Before acting on or dismissing any blocker or should-fix, read its full block in the report, then the code. A low or nit can be dismissed from its index line.
-3. Fix the real ones. Dismiss the rest with the concrete reason.
+2. Before acting on or dismissing any blocker or should-fix, read its full block in the report, then the code.
+3. Run the lead judgment below on every finding. Reviewers report; the lead decides what gets fixed.
 4. Each behavior fix comes with a test that fails without it.
-5. Put the fixes in a new commit, rerun the targeted tests, and rerun only the lanes the fix touches, on the fix commit's diff:
+5. Put the fixes in a new commit and rerun the targeted tests. Rerun lanes only per Reruns below.
 
-   | The fix changes | Rerun |
-   |---|---|
-   | behavior | correctness and tests |
-   | tests only | tests |
-   | comments, names, or structure | standards |
-   | code on a live-verified path | that claim's `verify-helios` lane |
+### Lead judgment
 
-   A rerun is a fresh agent with the same brief. Each finding is fixed and proven by its test; the rerun does not hear about it.
-6. Repeat until no lane blocks.
+The lead is the agent that launched the lanes. It has context the reviewers lack: operator decisions, the plan, the rest of the stack. Ask of each finding:
+
+1. **Actual or hypothetical?** A real caller, input, or deploy order must reach it. Trace the call site. "If someone later refactors this" is hypothetical.
+2. **Missing context?** The reviewer didn't know an operator decision, a constraint, or that a later PR covers it.
+3. **Taste?** "I would do it differently" with no concrete failure.
+4. **Premature abstraction?** Extract or share code only when it must change a second way.
+5. **Inflated severity?** Adversarial reviewers fill their reports. A correctness or tests blocker that is really a style point drops to low.
+
+The same finding from two lanes or two model families weighs more. Never dismiss a correctness or security finding just because it is inconvenient.
+
+Put each finding in one bucket:
+
+| Bucket | What happens |
+|---|---|
+| **Fix** | A blocker or should-fix that survives the questions. Goes into the fix commit. |
+| **Fix, no rerun** | A low or nit. Goes into the same fix commit; triggers no rerun. |
+| **Ask** | Real, but a trade-off or product call. `AskQuestion`, recommended option first. |
+| **Dismiss** | A finding that fails question 1, 2, 3, or 4. One-line reason naming the question. |
+
+Lows and nits default to Fix, no rerun: standards and comments findings get addressed, not argued with. Dismiss one only when it fails a question above, for example a comment-lane finding that contradicts an operator decision. More than five blockers and should-fixes in Fix means the lead is not filtering hard enough; lows and nits don't count toward that. Report every bucket, Dismiss included with its reasons, so the operator can overrule.
+
+### Reruns
+
+- Rerun a lane only when the fix commit closes a blocker or should-fix that lane raised. Fix, no rerun items and Dismissals never trigger one.
+- Rerun only that lane, on the fix commit's diff, with the rerun brief. A behavior fix also reruns its claim's `verify-helios` lane when it touches a live-verified path.
+- **Cap: two rounds.** Round 1 is the first set of lanes; round 2 is the reruns. Anything still blocking after round 2 goes to the operator with the reports. No round 3 without the operator's go.
+- **Split before round 2.** If the PR is over about 800 changed lines, not counting generated files and tests, stop and propose a split before rerunning. A PR that needs a second round at that size is too big to review.
+
+Rerun brief: the lane's normal brief, with these lines replacing its Diff, job, and Write findings lines:
+
+```
+Diff: `git diff <fix-parent>...<fix-sha>` (the fix commit only).
+Earlier findings to check, verbatim from /tmp/review/<pr>-<lane>.md: <the F<n> blocks this fix addresses>.
+Your one job: for each earlier finding, is it closed? Then: does this fix diff add a new blocker or should-fix? Report nothing else, and no lows or nits.
+Write findings to /tmp/review/<pr>-<lane>-r2.md.
+```
 
 ## One commit for verify and review
 

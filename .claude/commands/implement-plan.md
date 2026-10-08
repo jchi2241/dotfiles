@@ -91,7 +91,7 @@ Start the next PR's tasks while these run.
 
 ### 3c. Fix round
 
-Triage per `review-lanes.md`. Put every real finding and every test failure into **one** fix commit per round, by a fresh fix subagent (model role `code workers`):
+Triage with the lead judgment in `review-lanes.md`. Put every Fix and Fix, no rerun finding and every test failure into **one** fix commit per round, by a fresh fix subagent (model role `code workers`):
 
 ```
 Fix these findings. Each behavior fix gets a test that fails without it.
@@ -101,7 +101,7 @@ Do not change code outside these fixes. Run the targeted tests. Commit.
 Report: FIXED: [summary] or FAILED: [what could not be fixed]
 ```
 
-Rerun the targeted tests and only the lanes the fix touches, per `review-lanes.md`. Repeat until no lane blocks.
+Rerun the targeted tests, and rerun lanes per Reruns in `review-lanes.md`: only the lanes whose blockers or should-fixes the fix closes, with the rerun brief. Two rounds at most; anything still blocking goes to the operator.
 
 ### 3d. Draft PR
 

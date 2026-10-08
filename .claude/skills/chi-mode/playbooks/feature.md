@@ -15,7 +15,7 @@ Steps 1 to 6 make the artifacts. Steps 7 to 10 build, check, and land them. Each
 7. **Build, per PR.** Run `/implement-plan <plan>`. For each PR, lowest first:
    - Implement each task with a fresh subagent.
    - On the PR's commit, at once: targeted tests on the touched packages, and the review lanes per [`../references/review-lanes.md`](../references/review-lanes.md).
-   - One fix commit per round, then rerun only the tests and lanes it touches.
+   - The lead judgment in `review-lanes.md` decides what gets fixed. One fix commit, then rerun the targeted tests and only the lanes whose blockers or should-fixes it closes. Two rounds at most, then the operator.
    - Open a draft PR per the push policy, with its live claims marked pending.
    - On a Risky PR, also run `blast-radius` (migrations, backfills, auth, code that old gateways run) and `interrogate` (a contested design, auth, billing, or enforcement).
    - A shape that differs from the design is a deviation. Stop and report it. The same workaround in several PRs means the design is wrong. Redo step 4.

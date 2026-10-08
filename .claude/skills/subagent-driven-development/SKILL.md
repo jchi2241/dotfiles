@@ -50,9 +50,9 @@ digraph sdd {
 - Dispatch parallel implementers on overlapping files
 - Paste full task text into prompts (provide pointers; subagents read the plan file themselves)
 - Proceed with unfixed review issues
-- Skip the lane rerun after a fix
+- Skip a rerun that Reruns in `review-lanes.md` requires
 - Let self-review replace external review
 
-**If a lane finds issues:** one fix subagent per round (`/implement-plan` Step 3c) → rerun the lanes the fix touches → loop until no lane blocks.
+**If a lane finds issues:** the lead judgment in `review-lanes.md` picks what to fix → one fix subagent (`/implement-plan` Step 3c) → rerun only the lanes whose blockers or should-fixes it closes → two rounds at most, then the operator.
 **If subagent asks questions:** answer completely before proceeding.
 **If subagent fails:** dispatch fresh fix subagent. Don't fix manually (context pollution).
