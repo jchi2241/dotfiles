@@ -88,6 +88,7 @@ The principles index lives in `~/.claude/CLAUDE.md` and is always loaded. Playbo
 
 - Give each subagent pointers, not pasted content: the plan path, the PR section, the spec sections, and file paths.
 - Delegate implementation through `/implement-plan`, which uses `subagent-driven-development`.
+- Hand any well-defined task that would take many tokens to a model role `code workers` subagent instead of doing it yourself: restacks, CI fixes, live tests, re-verification, simulations. Keep your own context for decisions and for checking the result.
 - You own every subagent's output. Read the diff. Do not repeat its summary as fact.
 - Review is done by fresh agents, never the author, one job each, given only that job, the diff, and the intent. See [`references/review-lanes.md`](references/review-lanes.md).
 
