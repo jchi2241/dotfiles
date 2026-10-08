@@ -73,8 +73,6 @@ gh stack rebase --upstack
 gh stack push          # force-with-lease; does not update PR metadata
 ```
 
-Without local tracking: load the `restack` skill (Skill tool) and follow it. It does one `--update-refs` cascade and one atomic `--force-with-lease` push. Then run `gh stack link` only if membership/bases must change.
-
 ### Merge
 
 ```bash
