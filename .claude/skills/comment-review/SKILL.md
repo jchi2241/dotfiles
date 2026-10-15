@@ -5,9 +5,14 @@ description: Use when reviewing a diff's code comments, running the comments lan
 
 # Comment review
 
-A comment survives only if it states something the code cannot show. Everything else is noise to delete. A comment that explains how our own surprising code works is a signal that the code should change instead; a comment that records why (a business rule, a product decision, a domain fact) is knowledge, and stays.
+Comments are guilty until a keep clause below proves otherwise.
+A comment that describes what the code does, or explains how our own code works, dies.
+When unsure whether a keep clause applies, the comment dies.
 
-Report only. Never edit code or comments; the writer applies the findings.
+Report only.
+Never edit code or comments; the writer applies the findings.
+Only ever propose deletion.
+Never propose rewording, shortening, extending, or adding a comment, and never "fix" a stale comment: delete it.
 
 ## Scope
 
@@ -15,40 +20,58 @@ Report only. Never edit code or comments; the writer applies the findings.
 - Existing comments the diff makes false (the code under them changed).
 - Not generated files (`*_gen.go`, `__generated__/**`, `*.pb.go`), not vendored code, not comments the diff doesn't touch.
 
-## What survives
+## Keep clauses
 
-The test for every comment: could a reader get this from the code nearby (the function, its callers, its types and names)? If yes, it goes. If no, it stays. When unsure whether a comment is noise, it goes; when unsure whether it carries knowledge the code can't show, it stays.
+This list is the only leash.
+Everything else dies.
 
-- Knowledge the code can't carry: business or billing rules, product decisions and why they were made ("on-demand orgs can't raise their own cap; Sales owns that"), domain facts, unit conventions, operational or rollout constraints, and other esoteric context a careful reader would not infer from the code. Keep these even when they explain our own code; a rename can't encode a product decision.
 - License or legal headers.
-- A constraint forced by something we can't change: an external API, vendor, protocol, platform, or library quirk. Our own code's surprises don't qualify.
+- Non-obvious behavior forced by something we can't reshape: an external API, vendor, platform, protocol, or library quirk.
+  Surprises in our own code don't qualify.
 - A link to an issue, incident, or RFC that explains a constraint the code can't express.
-- Doc comments on an exported or public API that state its contract (Go exported identifiers, GraphQL schema descriptions, public TS exports). A doc comment that restates the name ("GetUser gets the user") is still noise.
-- Tool directives: `//go:build`, `//go:generate`, `//go:embed`, `// prettier-ignore`. Lint suppressions (`//nolint`, `eslint-disable`, `@ts-ignore`, `@ts-expect-error`) only when the rule is style-only or wrong for this line; read the rule before deciding.
+- Doc comments that define a contract at a real public boundary: GraphQL schema descriptions, published packages, APIs consumed outside this repo or service.
+  Exported Go identifiers inside a monorepo are not a public boundary; Helios disables revive's exported-comment rules.
+  Even at a real boundary, keep only what the signature and name can't say (preconditions, error semantics, side effects); a doc comment that narrates the body dies.
+- Tool directives: `//go:build`, `//go:generate`, `//go:embed`, `// prettier-ignore`.
+- Lint suppressions (`//nolint`, `eslint-disable`, `@ts-ignore`, `@ts-expect-error`) only when the rule is faulty, pedantic, or style-only for this line.
+  Look up the rule before deciding.
 
-## What goes
+## Our-code surprises
 
-- Narration of what the next line does, section banners, restated names, changelog or history ("was X, now Y", "added for PR-4"), reviewer-facing justifications ("this is safe because").
-- Commented-out code.
-- TODOs without an owner and ticket key.
-- Comments that are stale or false against the code they sit on.
+Some dying comments exist only to make ambiguous, badly named, or badly designed code understandable.
+The comment dies, and the code it propped up is flagged `MUST KILL` with the cleaner design: a rename, an extracted function, a type that makes the wrong state unrepresentable, a parameter that makes a hidden dependency explicit, or a restructure that makes an ordering structural.
+Flag only when all of these hold:
 
-## Workaround comments
+- The comment's claim is true against the code today; check it. A false comment is a plain deletion.
+- Without the comment, a careful reader would misread or misuse the code. Narration of obvious code is a plain deletion.
+- The symbol is code the diff adds or changes.
 
-"IMPORTANT", "do not remove", "too risky", "fine for now", and long justifications are claims, not proof. Read the surrounding code and its callers; use `git log -S` or `git log -L` on the line if the reason is historical. Then:
+The same applies to a suppression hiding a rule that catches real bugs or protects safety: the suppression dies and the guilty symbol is `MUST KILL`.
+Never write the code; invent nothing.
 
-- The claim is a foreign constraint, true today on a live path: it survives. Say so in the report only if it's borderline.
-- The claim carries knowledge the code can't show (a product or business decision, a domain fact, a rollout constraint): it survives, even in our own code.
-- The claim only explains how our own code works: the comment goes, and the finding names the exact symbol to rename, extract, type, or restructure so the behavior is obvious without prose. Don't propose a shorter version of the comment.
-- A suppression that hides a rule which catches real bugs: the suppression goes, and the finding names the code that must change to satisfy the rule.
+## Workaround claims
 
-## Severity
+"IMPORTANT", "do not remove", "too risky", "fine for now", and long justifications are scent, not proof.
+Read the nearby code first.
+If the claim isn't obvious there, run the `how` skill (runtime behavior) or the `why` skill (history and rationale), or both, on the named symbol or call.
+Only use them for these claims, not for ordinary comments.
+Only a keep-clause constraint proven true today on a live path survives.
+Our-code surprises die with a `MUST KILL` flag.
+Doubt after the hunt dies.
 
-| Finding | Severity |
-|---|---|
-| Comment states something false about behavior a caller relies on | blocker |
-| Stale or false comment; suppression hiding a real-bug rule; our-code workaround needing a refactor | should-fix |
-| Narration, banner, restated name, history, reviewer-facing justification, commented-out code, ownerless TODO | low |
-| Wording of a comment that survives | nit |
+## Report
 
-Each finding: the comment's location, why it goes (one line, from the lists above), and the fix: delete it, or the code change that replaces it.
+Use the lane brief's finding format, one header per finding:
+
+```
+### F<n> | low | <file>:<line>
+DELETE: <one line on why it dies>
+```
+
+```
+### F<n> | should-fix | <file>:<line of the comment>
+DELETE + MUST KILL `<symbol>` (<file>:<line>): <what the comment had to explain> → <the reshape>
+```
+
+A false comment is should-fix; every other plain deletion is low.
+After the findings, list survivors (`file:line` and the keep clause that saved it) and skips.
