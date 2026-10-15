@@ -32,7 +32,7 @@ Commit prefix: [PN/TM]
 
 ## Before You Begin
 
-1. **Read your task section** from the plan file. That is your specification.
+1. **Read your task section** from the plan file, and the PR's **Intent**. The approved sketch on the branch (types, signatures, stub bodies) is your specification: fill it in. Changing an approved signature or type is a question for the orchestrator, not a deviation you make.
 2. **Read the spec file** if your task involves API contracts, data models, or architectural decisions — the plan references specific sections.
 3. **Verify dependency interfaces.** If your task depends on completed tasks, read the actual files they created. The plan describes intended interfaces; the codebase is truth. If they differ, follow the codebase and document the deviation.
 4. **Ask questions** if anything is unclear about requirements, approach, or assumptions. Do not guess or assume. It is always OK to pause and clarify.
@@ -69,8 +69,7 @@ Once clear on requirements:
 3. Run verification commands from Success Criteria
 4. Commit your work (using `[PN/TM]` prefix — see above)
 5. Self-review (see below)
-6. Update the plan file's "Actual Implementation" section for this task
-7. Report back
+6. Report back. Do not write into the plan file; deviations go in your report and then the PR body.
 
 ## Verification Before Completion
 

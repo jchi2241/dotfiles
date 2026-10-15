@@ -11,7 +11,7 @@ Execute an implementation plan created by `/create-plan`, one PR at a time.
 **Required argument:** Path to the plan file
 **Optional flag:** `--yolo` — one `reviewers` agent per PR instead of the lanes, and no integration lane.
 
-The plan file is the only progress state. A task is done when its "Actual Implementation" section is filled in. A PR is done when its section records a branch, a commit, and a PR URL. Rerun this command with the same plan to resume.
+The plan file is the only progress state, and it is not a build log. A task is done when its commit is on the PR branch. A PR is done when its section records a branch, a commit, and a PR URL. Nothing else is written into the plan during the build; what was built and any deviations go in the PR body. Rerun this command with the same plan to resume.
 
 ---
 
@@ -19,6 +19,7 @@ The plan file is the only progress state. A task is done when its "Actual Implem
 
 Run unattended. Stop only for:
 
+- The sketch gate (Step 3a0), once per PR.
 - A chi-mode gate (`~/.claude/skills/chi-mode/SKILL.md`, Gates). Pushing and opening draft PRs follow the plan's `push:` field: `drafts` means the operator approved them, `ask` means queue them.
 - A failed task, or a failed check that a fix round cannot clear.
 - A deviation from the design document, or the same workaround in several PRs.
@@ -53,9 +54,15 @@ One branch per PR section, named `<jira-key>/jchi/pr-<N>-<slug>`:
 
 Take the lowest PR whose dependencies are done. PRs with no dependency between them may run in parallel, each in its own worktree, with at most two implementers or fixers at once. Put worktrees under `~/projects`, not `/tmp`, and give each one an `.envrc.private` with `use heavy_slots` (the `wta` copy sources the main repo's, which has it).
 
+### 3a0. Sketch gate
+
+Dispatch one code worker (model role `code workers`) to sketch the PR on its branch: the PR's **Intent** paragraph from the plan, refined only from the operator's words, the spec, and the PRD, and the shape in code: types, signatures, and the call sites that change, with stub bodies and no logic. It applies `ponytail` and `principle-code-judo` and commits the sketch as `[PN/PR-M] Sketch <slug>`.
+
+Show the operator the intent paragraph and `git diff <base>...<sketch-sha>`, and stop. Iterate with fresh sketch workers until the operator confirms the intent and approves the sketch. Write any intent edit into the PR section's **Intent**. No body is filled in before approval.
+
 ### 3a. Implement
 
-Per task, follow `~/.claude/skills/subagent-driven-development/SKILL.md`. Dispatch one implementer (model role `code workers`) with a short pointer prompt; it reads its own template:
+Per task, follow `~/.claude/skills/subagent-driven-development/SKILL.md`. Implementers fill in the approved sketch. Dispatch one implementer (model role `code workers`) with a short pointer prompt; it reads its own template:
 
 ```
 Read ~/.claude/skills/subagent-driven-development/implementer-prompt.md — that is your full instructions. Follow it.
@@ -85,13 +92,13 @@ Tasks in the same PR may run in parallel only when their "Files to Modify" lists
 Commit any leftover work with `/commit`. Then, on that one SHA, start both at once:
 
 - **Targeted tests:** the PR's Verify tests, plus lint, on the touched packages and components only: `go test -p 2 ./named/pkg/`, and `cd frontend && pnpm run cct:run --spec <path>` per touched spec. Never `go build ./...` or the full suite per PR; leave wide coverage to CI.
-- **Lanes:** per `~/.claude/skills/chi-mode/references/review-lanes.md`. Say the Risky call and its reason when you launch them. In `--yolo`, one `reviewers` agent instead.
+- **Review round 1** (standards, comments, tests): per `~/.claude/skills/chi-mode/references/review-lanes.md`, each lane given the PR's **Intent** verbatim. Say the Risky call and its reason when you launch them. In `--yolo`, one `reviewers` agent instead, then go to 3d.
 
 Start the next PR's tasks while these run.
 
 ### 3c. Fix round
 
-Triage with the lead judgment in `review-lanes.md`. Put every Fix and Fix, no rerun finding and every test failure into **one** fix commit per round, by a fresh fix subagent (model role `code workers`):
+Triage each round with the lead judgment in `review-lanes.md`: it decides by the PR's **Intent**, and a finding that would change the intent or a dated Resolved decision is an Ask for the operator. Put every Fix finding and every test failure into **one** fix commit per round, by a fresh fix subagent (model role `code workers`):
 
 ```
 Fix these findings. Each behavior fix gets a test that fails without it.
@@ -101,11 +108,11 @@ Do not change code outside these fixes. Run the targeted tests. Commit.
 Report: FIXED: [summary] or FAILED: [what could not be fixed]
 ```
 
-Rerun the targeted tests, and rerun lanes per Reruns in `review-lanes.md`: only the lanes whose blockers or should-fixes the fix closes, with the rerun brief. Two rounds at most; anything still blocking goes to the operator.
+Rerun the targeted tests. Then run the next round from `review-lanes.md` on the new head: round 2 (simplification), then round 3 (correctness, last). Round 3's fixes need no rerun.
 
 ### 3d. Draft PR
 
-1. Under `push: drafts`, open the PR with `/pr-create`, as a draft, on the PR's base branch. Its Test Plan lists the targeted test results and the PR's live claims as `pending phase [N] verify`. Under `push: ask`, queue it for the next stop.
+1. Under `push: drafts`, open the PR with `/pr-create`, as a draft, on the PR's base branch. Its `## Why` is the PR's **Intent**; what was built and any deviations go in its body. Its Test Plan lists the targeted test results and the PR's live claims as `pending phase [N] verify`. Under `push: ask`, queue it for the next stop.
 2. Record in the PR section:
 
 ```markdown
@@ -130,8 +137,6 @@ After every PR in the phase has a recorded commit:
 > Completed YYYY-MM-DD
 
 **PRs:** PR-[M] `<branch>` [URL], ...
-**Deviations from plan:** [what changed and why]
-**Gotchas for the next phase:** [anything a fresh agent should know]
 **Integration lane:** [NO-BLOCK / findings]
 **Live verify:** [receipts path, verdict, SHA per PR]
 ```

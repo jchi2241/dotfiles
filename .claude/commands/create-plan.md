@@ -25,7 +25,7 @@ The plan file is the only progress state. `/implement-plan` reads and updates it
 Read ~/.claude/thoughts/specs/YYYY-MM-DD_<topic>.md
 ```
 
-The spec is the source of truth for WHAT to build and HOW. Your job is to sequence and decompose the spec into independently-executable tasks, grouped into PRs that each land on their own, and PRs grouped into phases that each deliver a slice a user can see.
+The spec is the source of truth for WHAT to build and for the operator's dated decisions (its Resolved section). HOW is not planned: each PR sketches its own shape, and the operator approves it at the sketch gate. Your job is to sequence and decompose the spec into independently-executable tasks, grouped into PRs that each land on their own, and PRs grouped into phases that each deliver a slice a user can see.
 
 Also read any referenced documents from the spec's frontmatter:
 - `research_doc:` path — for codebase context
@@ -163,24 +163,14 @@ tasks_complete: 0
 **PR:** PR-1
 
 #### Description
-[Detailed description of what needs to be done]
+[The outcome this task delivers, in behavior terms. No symbols, signatures, or code.]
 
 #### Files to Modify
-- `path/to/file.ext` - [what changes]
-
-#### Implementation Notes
-[Specific guidance, code snippets, patterns to follow]
+- `path/to/file.ext` (for ordering and parallelism only; the sketch decides what changes)
 
 #### Success Criteria
 - [ ] [Specific verifiable outcome]
 - [ ] Tests pass: `<test command>`
-
-#### Actual Implementation
-> _To be filled in by the implementing agent upon completion_
-
-```
-[Agent fills this in with what was actually done, any deviations from the plan, and why]
-```
 
 ---
 
@@ -206,6 +196,7 @@ tasks_complete: 0
 #### PRs in This Phase
 
 ##### PR-1: [Descriptive Name] [BE]
+- **Intent:** [one paragraph: the problem and who sees it, the outcome when it lands, the binding constraints and dated Resolved decisions, what it leaves out. No symbols. The operator confirms it at the sketch gate.]
 - **Delivers:** [one sentence]
 - **Depends on:** None (base: `master`)
 - **Jira:** [story key]
@@ -214,6 +205,7 @@ tasks_complete: 0
 - **Live claims:** one line each: [claim] → [action on the local stack] → [expected evidence]
 
 ##### PR-2: [Descriptive Name] [FE]
+- **Intent:** [one paragraph, as above]
 - **Delivers:** [one sentence]
 - **Depends on:** PR-1 (base: PR-1's branch)
 - **Jira:** [story key]
@@ -278,62 +270,15 @@ tasks_complete: 0
 
 ---
 
-## Task Completion Protocol
+## Progress
 
-**CRITICAL:** When an agent works on a task, they MUST update this plan file:
+The plan is not a build log. During the build, only these change:
 
-### When Completing a Task:
-1. **Fill in "Actual Implementation" section** with:
-   - What was actually done (may differ from planned)
-   - Files that were modified (with line numbers)
-   - Any deviations from the plan and why
-   - Gotchas or learnings for subsequent tasks
+- frontmatter counters and `status`;
+- each PR section's **Branch**, **Commit**, and **PR** lines;
+- an operator-confirmed edit to a PR's **Intent**, when an Ask changes it.
 
-2. **Update the Changelog** with completion details
-
-3. **Update frontmatter counters:**
-   - Increment `tasks_complete`
-   - Increment `prs_complete` if the PR's tasks are done and the PR is opened
-   - Increment `phases_complete` if phase is done
-   - Set `status: complete` when all tasks done
-
-This ensures agents with fresh context picking up subsequent tasks have accurate information about the current state.
-
----
-
-## Example Task Update
-
-Before:
-```markdown
-### Task 3: Add database migration
-
-**Blocked By:** Task 2
-**Phase:** 2
-
-#### Actual Implementation
-> _To be filled in by the implementing agent upon completion_
-```
-
-After implementation complete:
-```markdown
-### Task 3: Add database migration
-
-**Blocked By:** Task 2
-**Phase:** 2
-
-#### Actual Implementation
-> Completed 2026-01-28
-
-Added migration `20260128_add_domain_id_index.sql`:
-- Created index on `sessions.domain_id` for query performance
-- Migration tested locally with `make migrate`
-
-**Deviation from plan:** Originally planned to add a composite index with `user_id`, but analysis showed single-column index is sufficient for the query patterns.
-
-**Files modified:**
-- `migrations/20260128_add_domain_id_index.sql` (new file)
-- `data/conversations/filter.go:45` - Updated query to use new index hint
-```
+What was built, deviations, and gotchas go in the PR body. Operator decisions go in the spec's Resolved section with a date.
 
 ---
 

@@ -41,6 +41,8 @@ To add a workflow: write `playbooks/<name>.md` as numbered steps that name the s
 - Filing a migration apply ticket, or merging a migration. Neither the operator nor the agent applies staging or production migrations; a designated applier does, through the apply ticket (`helios-migration-jira-ticket` skill).
 - Enabling a codegate, running a backfill, or anything else that changes staging or production data.
 - A product or preference call that no experiment can settle. Use `AskQuestion` with a recommended option first.
+- The sketch gate, per PR: the operator confirms the intent paragraph and approves the sketch (types, signatures, stub bodies) before any body is filled in.
+- A review finding that would change a PR's intent or a dated Resolved decision. Ask; record the answer in the spec's Resolved section with its date.
 
 Reversible local work proceeds without asking: reading, research, local edits to thoughts files, prototypes on a scratch branch, local branches and commits in a worktree, and local stack changes that verification needs (applying migrations to the local database, running backfills, toggling codegates, redeploying services). The operator's standing approval of local commits overrides the Helios rule against unrequested commits. Never commit on `master` or in the main `~/projects/helios` checkout.
 
@@ -49,9 +51,11 @@ Match verification to the change. A comment-only or doc-only diff skips build, t
 ## Sources of truth
 
 - The PRD (Google Doc) holds product intent. The team agrees on it before work starts.
-- The spec holds behavior. If the spec and the PRD disagree, stop and list the gaps.
+- The spec holds behavior and the operator's dated decisions (its Resolved section). If the spec and the PRD disagree, stop and list the gaps.
+- Each PR's intent paragraph, confirmed by the operator at the sketch gate, is what the lead decides by. It goes in the plan's PR section and the PR body's `## Why`. The orchestrator drafts it only from the operator's words, the spec, and the PRD.
 - The design document holds the shapes that cross PRs.
-- The plan holds phases, PRs, tasks, and rollout order. Implementation details live here and in the spec.
+- The plan holds phases, PRs, rollout order, and each PR's intent, outcome, and live claims. It names no symbols, and nothing is written back into it during the build except progress (branch, commit, PR).
+- Implementation lives in the code: sketched first and approved, then filled in. What was built and any deviations go in the PR body.
 - Jira tracks outcomes. The story is the finest-grained ticket. Several PRs share one story key.
 
 Artifacts live under `~/.claude/thoughts/`. Run `/workflow` to see the chain.
