@@ -1,15 +1,13 @@
 ---
-description: Review and push dotfiles configuration changes
-allowed-tools: Bash(git:*), Bash(cd:*), Bash(~/.dotfiles/scripts/check-claude-skills.py), Read, AskUserQuestion
+description: Commit and push dotfiles configuration changes
+allowed-tools: Bash(git:*), Bash(cd:*), Bash(~/.dotfiles/scripts/check-claude-skills.py), Read
 ---
 
 # Dotfiles Sync
 
-Review pending changes in the dotfiles repository and optionally commit and push them.
+Commit every pending change in `~/.dotfiles`, grouped into logical commits, and push. Do not ask for confirmation.
 
-## Step 1: Check for changes
-
-Run these commands to gather the current state:
+## Step 1: Gather
 
 !`cd ~/.dotfiles && git status --short`
 
@@ -17,29 +15,32 @@ Run these commands to gather the current state:
 
 !`~/.dotfiles/scripts/check-claude-skills.py`
 
-If the skills check reports problems, fix them before committing. The pre-commit hook runs the same check.
-
-## Step 2: Show detailed changes
-
-For each modified file, show the diff:
-
 !`cd ~/.dotfiles && git diff`
 
-## Step 3: Summarize and confirm
+!`cd ~/.dotfiles && git log --oneline -10`
 
-Provide a clear summary of:
-- Which files were modified
-- What the changes do (brief description)
-- Any new untracked files
+Read untracked files before committing them. If the skills check reports problems, fix them first; the pre-commit hook runs the same check.
 
-Then ask the user:
-- Whether to proceed with committing and pushing
-- What commit message to use (suggest one based on the changes)
+## Step 2: Group
 
-## Step 4: Execute (only after confirmation)
+Split the changes into commits by intent, not by file:
 
-After user confirms:
-1. Stage all changes: `git add -A`
-2. Commit with the agreed message
-3. Push to remote
-4. Report success with the commit hash
+- One commit per independent change: a new skill, a workflow change across several skills, a settings change, an unrelated tool or alias.
+- Files that only make sense together (a skill and the CLAUDE.md row that indexes it, a reference rename and its callers) go in the same commit.
+- A file with hunks from two changes gets split with `git add -p` style staging (`git apply --cached` on a filtered patch); never commit a half-change that breaks the skills check.
+- One commit is fine when everything is one change.
+
+Order commits so each one passes the skills check on its own.
+
+## Step 3: Commit and push
+
+For each group, stage only its files or hunks and commit.
+Message style matches `git log`: one imperative subject line, under about 72 characters, naming what changed and why when it fits. No body unless the subject can't carry it. No co-author trailers.
+
+Then `git push`. If the push is rejected, `git pull --rebase` and push again; stop and report on a conflict.
+
+Never commit a file that looks like a secret (keys, tokens, `.env`, credentials); leave it unstaged and report it.
+
+## Step 4: Report
+
+List each commit's hash and subject, the push result, and anything left uncommitted with the reason.
